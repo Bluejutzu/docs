@@ -25,14 +25,36 @@
           "light": "/bmux/logo/icon.svg",
           "dark": "/bmux/logo/icon.svg"
         },
-        "groups": [
+        "tabs": [
           {
-            "group": "Getting started",
-            "pages": ["bmux/index", "bmux/installation"]
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Getting started",
+                "pages": ["bmux/index", "bmux/installation"]
+              },
+              {
+                "group": "Commands",
+                "pages": [
+                  "bmux/commands/convert",
+                  "bmux/commands/optimize",
+                  "bmux/commands/inspect"
+                ]
+              },
+              {
+                "group": "Changelog",
+                "pages": ["bmux/changelog"]
+              }
+            ]
           },
           {
-            "group": "Commands",
-            "pages": ["bmux/commands/convert", "bmux/commands/optimize", "bmux/commands/inspect"]
+            "tab": "Contributing",
+            "groups": [
+              {
+                "group": "Maintaining",
+                "pages": ["bmux/contributing/publishing"]
+              }
+            ]
           }
         ]
       },

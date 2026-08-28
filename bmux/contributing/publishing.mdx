@@ -1,0 +1,90 @@
+---
+title: "Publishing"
+description: "Cut a release, and set up trusted publishing to npm."
+icon: "upload"
+sidebarTitle: "Publishing"
+---
+
+Every release goes to GitHub Releases first. Publishing to npm is layered on top, authenticated
+over OIDC against a **trusted publisher** rather than a stored token — nothing to rotate or leak.
+
+## Cutting a release
+
+```bash
+pnpm run release minor      # or patch, major, or an explicit 0.2.0
+git push origin master --follow-tags
+```
+
+`release` bumps both `packages/cli/package.json` and `packages/core/package.json` — they ship as
+one version, since `core` exists to keep the browser app and the CLI honest about sharing logic,
+not as a library anyone installs on its own. It also rolls `CHANGELOG.md`'s `Unreleased` section
+into the new version.
+
+Pushing the tag runs the release workflow: typecheck, test, build, GitHub release, then npm.
+
+<Note>
+  The workflow refuses to build when the tag and the manifest versions disagree. That mismatch
+  would publish a version number that says nothing about what's in it, and you'd only find out
+  after the tag is public. Use `pnpm run release` rather than tagging by hand.
+</Note>
+
+## npm trusted publishing
+
+Trusted publishing needs a package to already exist before npm will let you attach a publisher to
+it, so there's a one-time bootstrap: publish the first version by hand, then hand off to OIDC for
+every release after.
+
+<Steps>
+  <Step title="Publish the first version by hand">
+    From a clean checkout, with npm CLI logged in to an account that can publish under the `bmux`
+    name and the `@bmux` scope:
+
+    ```bash
+    pnpm install
+    pnpm build
+    npm login
+    pnpm --filter @bmux/core publish --access public --no-git-checks
+    pnpm --filter bmux publish --access public --no-git-checks
+    ```
+
+    `core` goes first — `bmux` depends on it via `workspace:*`, and pnpm rewrites that to the exact
+    version being published, so `core` has to exist on the registry before `bmux` does.
+
+    <Note>
+      No `--provenance` here — provenance attestations need a supported CI environment's OIDC
+      token, which a local machine doesn't have. The workflow adds it automatically once releases
+      run through GitHub Actions.
+    </Note>
+  </Step>
+
+  <Step title="Configure the trusted publisher">
+    For **each** package (`@bmux/core` and `bmux`), on npmjs.com: package page → **Settings** →
+    **Trusted Publisher** → **GitHub Actions**, and fill in:
+
+    | Field | Value |
+    | --- | --- |
+    | Organization or user | `Bluejutzu` |
+    | Repository | `bmux` |
+    | Workflow filename | `release.yml` |
+    | Environment | *(leave blank)* |
+
+  </Step>
+
+  <Step title="Drop the old token, if there was one">
+    If a `NPM_TOKEN` repository secret exists from before trusted publishing, it's no longer read
+    by the workflow — delete it under **Settings → Secrets and variables → Actions**.
+  </Step>
+</Steps>
+
+From here, `pnpm run release` and a push is the whole flow — the workflow's `id-token: write`
+permission is enough for npm to trust it.
+
+## If publishing fails
+
+Publishing is non-fatal: the GitHub release is already created by the time npm runs, so a broken
+trust relationship (a renamed repo, a renamed workflow file) leaves you with a release to publish
+by hand rather than a red workflow and a half-done tag. The workflow summary says which packages
+published.
+
+Fix the trusted publisher config to match the workflow, then publish the missing version by hand
+with the same commands as the bootstrap step above.

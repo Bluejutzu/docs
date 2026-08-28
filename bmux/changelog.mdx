@@ -1,0 +1,25 @@
+---
+title: "bmux"
+description: "Notable changes to bmux, release by release."
+icon: "clock"
+sidebarTitle: "Changelog"
+---
+
+Each GitHub release lists every commit. This page covers what actually changed for you — see the
+[full history on GitHub](https://github.com/Bluejutzu/bmux/releases).
+
+`bmux` and `@bmux/core` release together as one version — see
+[Publishing](/bmux/contributing/publishing) for why.
+
+<Update label="Unreleased">
+- `bmux convert` turns files, folders or globs into JPEG, PNG, WebP or AVIF, with quality, resizing,
+  and several output formats at once
+- `bmux optimize` runs a whole folder through a web, social or email preset
+- `bmux inspect` reports what a file actually is, read from its contents rather than its name
+- File type is detected from content, so a mislabelled `.jpg` is still handled correctly
+- Originals are never overwritten — colliding names are renamed unless you pass `--collision`
+- Metadata is stripped by default, with photos rotated upright first; `--preserve-metadata` keeps it
+- `--dry-run` shows exactly what would be written, and `--manifest` writes a JSON report for CI
+- A failed file doesn't cancel the rest of the batch, and the command exits non-zero
+- Colour is used for status only, and honours [`NO_COLOR`](https://no-color.org)
+</Update>
