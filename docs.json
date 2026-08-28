@@ -21,6 +21,10 @@
       {
         "product": "bmux",
         "icon": "image",
+        "logo": {
+          "light": "/bmux/logo/icon.svg",
+          "dark": "/bmux/logo/icon.svg"
+        },
         "groups": [
           {
             "group": "Getting started",
