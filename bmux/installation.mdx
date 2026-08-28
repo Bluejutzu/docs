@@ -4,22 +4,49 @@ description: Get the bmux command onto your PATH.
 icon: "download"
 ---
 
-<Warning>
-  bmux isn't on npm yet, so `npm install -g @bluejutzu/bmux` won't work. Build it from source with the steps
-  below — it takes about a minute.
-</Warning>
+The package is `@bluejutzu/bmux` — npm's anti-squat check blocks the plain name `bmux` — but the
+command you get on your PATH is still `bmux`.
 
-## Requirements
+<CodeGroup>
+```bash npm
+npm install -g @bluejutzu/bmux
+```
+
+```bash pnpm
+pnpm add -g @bluejutzu/bmux
+```
+
+```bash yarn
+yarn global add @bluejutzu/bmux
+```
+</CodeGroup>
+
+```bash
+bmux --version
+```
+
+Requires Node 20 or newer. The CLI depends on [sharp](https://sharp.pixelplumbing.com/), which
+ships prebuilt binaries for Linux, macOS and Windows, so there's nothing to compile — installing
+just works.
+
+### Removing it again
+
+```bash
+npm uninstall -g @bluejutzu/bmux
+```
+
+## Building from source
+
+For working on bmux itself, or trying an unreleased change.
+
+### Requirements
 
 | Requirement | Version |
 | --- | --- |
 | **Node** | 20 or newer (the repo is developed on 22) |
 | **pnpm** | Any recent version — the repo pins one via `packageManager` |
 
-The CLI depends on [sharp](https://sharp.pixelplumbing.com/), which ships prebuilt binaries for
-Linux, macOS and Windows. There's nothing to compile.
-
-## Build and link
+### Build and link
 
 <Steps>
   <Step title="Clone and install">
@@ -55,13 +82,13 @@ Linux, macOS and Windows. There's nothing to compile.
   </Step>
 </Steps>
 
-### Removing it again
+### Removing the linked build
 
 ```bash
 pnpm uninstall --global bmux
 ```
 
-## Without linking
+### Without linking
 
 If you'd rather not put anything on your PATH, run the built entry point directly:
 
