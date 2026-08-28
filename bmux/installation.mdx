@@ -4,8 +4,7 @@ description: Get the bmux command onto your PATH.
 icon: "download"
 ---
 
-The package is `@bluejutzu/bmux` — npm's anti-squat check blocks the plain name `bmux` — but the
-command you get on your PATH is still `bmux`.
+Install `@bluejutzu/bmux`, which puts `bmux` on your PATH.
 
 <CodeGroup>
 ```bash npm
@@ -34,6 +33,21 @@ just works.
 ```bash
 npm uninstall -g @bluejutzu/bmux
 ```
+
+### Unreleased builds
+
+Every push to `master` packs and attaches the CLI tarball to its CI run, so you can pick up a fix
+before it's tagged. Open the [latest CI run](https://github.com/Bluejutzu/bmux/actions/workflows/ci.yml),
+scroll to **Artifacts**, and download `bmux-<sha>`.
+
+<Note>
+  GitHub wraps workflow artifacts in a `.zip`. Unzip it to get the `.tgz` inside, then install it
+  like any local package:
+
+  ```bash
+  npm install -g ./bluejutzu-bmux-0.0.0.tgz
+  ```
+</Note>
 
 ## Building from source
 

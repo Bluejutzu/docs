@@ -30,10 +30,11 @@ Pushing the tag runs the release workflow: typecheck, test, build, GitHub releas
 
 ## Only the CLI is published
 
-`@bmux/core` is `private: true` and never touches the registry. `packages/cli`'s `prepublishOnly`
+`@bmux/core` is `private: true` and never touches the registry. `packages/cli`'s `prepack` script
 bundles it straight into `dist/index.js` with [esbuild](https://esbuild.github.io/) — `chalk`,
 `commander`, `fast-glob` and `sharp` stay external and install normally (`sharp` ships prebuilt
-native binaries per platform, which can't be bundled anyway).
+native binaries per platform, which can't be bundled anyway). `prepack` runs for both `pnpm pack`
+(what CI uses for the per-commit artifact below) and `pnpm publish`.
 
 That also sidesteps needing an npm org: the CLI publishes under `@bluejutzu`, an existing personal
 scope, rather than a new `@bmux` org. Plain `bmux` was tried first and rejected — npm's anti-squat
