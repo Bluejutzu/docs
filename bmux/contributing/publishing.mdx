@@ -15,10 +15,10 @@ pnpm run release minor      # or patch, major, or an explicit 0.2.0
 git push origin master --follow-tags
 ```
 
-`release` bumps both `packages/cli/package.json` and `packages/core/package.json` — they ship as
-one version, since `core` exists to keep the browser app and the CLI honest about sharing logic,
-not as a library anyone installs on its own. It also rolls `CHANGELOG.md`'s `Unreleased` section
-into the new version.
+`release` bumps both `packages/cli/package.json` and `packages/core/package.json` in lockstep, so
+the version number always tells you which `core` a given CLI release was built against — `core`
+itself is never published, just bundled in (see below). It also rolls `CHANGELOG.md`'s `Unreleased`
+section into the new version.
 
 Pushing the tag runs the release workflow: typecheck, test, build, GitHub release, then npm.
 
@@ -28,33 +28,33 @@ Pushing the tag runs the release workflow: typecheck, test, build, GitHub releas
   after the tag is public. Use `pnpm run release` rather than tagging by hand.
 </Note>
 
+## Only the CLI is published
+
+`@bmux/core` is `private: true` and never touches the registry. `packages/cli`'s `prepublishOnly`
+bundles it straight into `dist/index.js` with [esbuild](https://esbuild.github.io/) — `chalk`,
+`commander`, `fast-glob` and `sharp` stay external and install normally (`sharp` ships prebuilt
+native binaries per platform, which can't be bundled anyway).
+
+That also sidesteps needing an npm org: the CLI publishes under `@bluejutzu`, an existing personal
+scope, rather than a new `@bmux` org. Plain `bmux` was tried first and rejected — npm's anti-squat
+check blocks unscoped names too close to existing ones (`bun`, `bluu`, `flux` in this case).
+
 ## npm trusted publishing
 
-Trusted publishing needs a package to already exist before npm will let you attach a publisher to
+Trusted publishing needs the package to already exist before npm will let you attach a publisher to
 it, so there's a one-time bootstrap: publish the first version by hand, then hand off to OIDC for
 every release after.
 
 <Steps>
-  <Step title="Create the @bmux org">
-    Both packages publish under the `@bmux` scope — `bmux` alone is blocked by npm's anti-squat
-    check (too close to existing names like `bun` and `flux`), and a new scope has to exist as an
-    org before npm will accept a publish under it. Create it for free at
-    [npmjs.com/org/create](https://www.npmjs.com/org/create).
-  </Step>
-
   <Step title="Publish the first version by hand">
-    From a clean checkout, logged in to an account that's a member of the `@bmux` org:
+    From a clean checkout, logged in to the `@bluejutzu` account:
 
     ```bash
     pnpm install
     pnpm build
     npm login
-    pnpm --filter @bmux/core publish --access public --no-git-checks
-    pnpm --filter @bmux/cli publish --access public --no-git-checks
+    pnpm --filter @bluejutzu/bmux publish --access public --no-git-checks
     ```
-
-    `core` goes first — the CLI depends on it via `workspace:*`, and pnpm rewrites that to the exact
-    version being published, so `core` has to exist on the registry before the CLI does.
 
     <Note>
       No `--provenance` here — provenance attestations need a supported CI environment's OIDC
@@ -64,8 +64,8 @@ every release after.
   </Step>
 
   <Step title="Configure the trusted publisher">
-    For **each** package (`@bmux/core` and `@bmux/cli`), on npmjs.com: package page → **Settings** →
-    **Trusted Publisher** → **GitHub Actions**, and fill in:
+    On npmjs.com: the `@bluejutzu/bmux` package page → **Settings** → **Trusted Publisher** →
+    **GitHub Actions**, and fill in:
 
     | Field | Value |
     | --- | --- |
@@ -89,7 +89,7 @@ permission is enough for npm to trust it.
 
 Publishing is non-fatal: the GitHub release is already created by the time npm runs, so a broken
 trust relationship (a renamed repo, a renamed workflow file) leaves you with a release to publish
-by hand rather than a red workflow and a half-done tag. The workflow summary says which packages
+by hand rather than a red workflow and a half-done tag. The workflow summary says whether it
 published.
 
 Fix the trusted publisher config to match the workflow, then publish the missing version by hand
