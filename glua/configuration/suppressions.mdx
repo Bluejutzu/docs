@@ -1,0 +1,89 @@
+---
+title: "Inline Diagnostic Suppressions for GLua"
+description: "Suppress individual GLua diagnostics with inline comments when a specific finding is wrong but the rule should stay on for the rest of the project."
+icon: "comment-slash"
+sidebarTitle: "Suppressions"
+---
+
+Sometimes a diagnostic fires on a line that is actually correct. Instead of weakening the rule globally, you can suppress that single finding with an inline comment. The rest of your codebase keeps the protection, and readers can see exactly why the exception exists.
+
+## Suppression comment syntax
+
+GLua recognizes several suppression styles in Lua comments.
+
+Suppressions take a **diagnostic code** — the kebab-case name shown in the
+Problems panel, such as `unused-local`. That is not the same as the camelCase
+settings key (`unusedLocal`) you would use in `.glua.json`. See the
+[rule reference](/glua/reference/rules) for both names.
+
+```lua
+-- Suppress all rules on the next line
+-- glua-ignore
+local x = 1
+
+-- Suppress one rule on the next line
+-- glua-ignore unused-local
+local y = 2
+
+-- Suppress several
+-- glua-ignore unused-local, undefined-global
+local z = SomeAddon.Thing
+
+-- Suppress inline on the same line
+local w = 3 -- glua-ignore unused-local
+
+-- Disable a rule across a range
+-- glua-disable realm-violation
+if SERVER then
+    -- server-only code inside a file detected as clientside
+end
+-- glua-enable realm-violation
+
+-- Suppress an entire file
+-- glua-disable-file
+
+-- Suppress one rule for an entire file
+-- glua-disable-file net-payload-mismatch
+```
+
+## Suppressions that do nothing
+
+A suppression outlives the finding it was written for: the code gets fixed, the
+comment stays, and from then on it silently covers whatever appears on that line
+next. [`unused-suppression`](/glua/reference/rules#unused-suppression) reports the
+ones that never silenced anything.
+
+<Warning>
+  Write the **code**, not the settings key: `unusedLocal` where `unused-local`
+  belonged is not a rule name, so it silences nothing. It is reported rather
+  than quietly ignored, because a mistake here used to look like working
+  protection.
+</Warning>
+
+A bare `-- glua-ignore` followed by prose still means "everything on the next
+line", so an explanation after the directive is fine:
+
+```lua
+-- glua-ignore because this stub is filled in by the loader
+local placeholder = nil
+
+-- glua-ignore unused-local it gets read by the include below
+local shared = {}
+```
+
+## When to use suppressions
+
+<Tip>
+  If an entire path (like `lua/vendor/**`) triggers the same diagnostic, prefer a config file override in `.glua.json` instead of scattering suppression comments.
+</Tip>
+
+<Note>
+  Suppress the specific rule name when possible. Avoid `-- glua-ignore` without a rule name because it silences every diagnostic on that line and can hide real problems.
+</Note>
+
+## Not a suppression: `-- glua-format-ignore`
+
+These comments silence diagnostics. The formatter has its own directive,
+[`-- glua-format-ignore`](/glua/features/formatter#leaving-code-alone), which leaves
+the statement below it exactly as written. They are unrelated: suppressing a
+rule does not stop the formatter, and a format-ignore does not silence anything.

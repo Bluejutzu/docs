@@ -1,0 +1,95 @@
+---
+title: Installation
+description: Get the bmux command onto your PATH.
+---
+
+<Warning>
+  bmux isn't on npm yet, so `npm install -g bmux` won't work. Build it from source with the steps
+  below — it takes about a minute.
+</Warning>
+
+## Requirements
+
+| Requirement | Version |
+| --- | --- |
+| **Node** | 20 or newer (the repo is developed on 22) |
+| **pnpm** | Any recent version — the repo pins one via `packageManager` |
+
+The CLI depends on [sharp](https://sharp.pixelplumbing.com/), which ships prebuilt binaries for
+Linux, macOS and Windows. There's nothing to compile.
+
+## Build and link
+
+<Steps>
+  <Step title="Clone and install">
+    ```bash
+    git clone https://github.com/Bluejutzu/bmux
+    cd bmux
+    pnpm install
+    ```
+  </Step>
+
+  <Step title="Build">
+    ```bash
+    pnpm build
+    ```
+
+    The CLI depends on `@bmux/core`'s build output, so build the whole workspace rather than just
+    the CLI package.
+  </Step>
+
+  <Step title="Put bmux on your PATH">
+    ```bash
+    pnpm --filter bmux exec pnpm link --global
+    ```
+
+    This symlinks the package, so it keeps pointing at your checkout — rebuild and the `bmux`
+    command picks the change up immediately.
+  </Step>
+
+  <Step title="Check it worked">
+    ```bash
+    bmux --version
+    ```
+  </Step>
+</Steps>
+
+### Removing it again
+
+```bash
+pnpm uninstall --global bmux
+```
+
+## Without linking
+
+If you'd rather not put anything on your PATH, run the built entry point directly:
+
+```bash
+node packages/cli/dist/index.js convert photo.jpg --to webp
+```
+
+That's the same binary the linked `bmux` command runs.
+
+## Paths on Windows
+
+Both separators work:
+
+```powershell
+bmux convert "C:\photos\shot.png" --to webp
+bmux convert "C:/photos/shot.png" --to webp
+```
+
+<Tip>
+  PowerShell doesn't expand globs itself, so quote them and let bmux do the matching —
+  `bmux convert "photos/*.png" --to webp`
+</Tip>
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Every file succeeded |
+| `1` | At least one file failed, or the arguments were invalid |
+
+A failed file never cancels the others — the batch runs to the end, then exits non-zero. That's
+what makes it safe to drop into CI.

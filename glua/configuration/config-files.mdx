@@ -1,0 +1,78 @@
+---
+title: "Committed Config Files for GLua"
+description: "Use .glua.json for linter rules and .gluafmtrc.json for formatter options so your whole team shares the same settings without extra setup."
+icon: "file-code"
+sidebarTitle: "Config Files"
+---
+
+A project's linter and formatter settings belong in the project, not in each contributor's editor. `.glua.json` and `.gluafmtrc.json` are read from the workspace root as soon as they exist, so a checkout has the same rules the last person to touch them did.
+
+## Creating config files
+
+Both files can be seeded from the settings currently in your editor. Open the Command Palette and run one of:
+
+- `GLua: Create Linter Config File` (creates `.glua.json`)
+- `GLua: Create Formatter Config File` (creates `.gluafmtrc.json`)
+
+The file is written at the workspace root with whatever settings the editor has at that moment. From then on the file is the source of truth.
+
+## Linter config (`.glua.json`)
+
+Declared globals, diagnostic severity, and per-path overrides.
+
+```json
+{
+  "globals": ["ULib", "ulx"],
+  "diagnostics": {
+    "unusedLocal": "warning",
+    "realmViolation": "error"
+  },
+  "overrides": [
+    {
+      "files": ["lua/vendor/**"],
+      "diagnostics": {
+        "unusedLocal": "off"
+      }
+    }
+  ]
+}
+```
+
+- `globals`: declare addon names or libraries that are available at runtime but not defined in your workspace.
+- `diagnostics`: set any rule to `"error"`, `"warning"`, `"information"`, `"hint"` or `"off"`. See the [rule reference](/glua/reference/rules) for the key names.
+- `overrides`: an **array** of `{ "files": [...], "diagnostics": {...} }`, applied in order so later entries win. In the example, vendored files under `lua/vendor/**` do not report unused locals.
+
+See the [glua.schema.json reference](/glua/reference/glua-schema) for every property, including `workspace`, `completion`, `inlayHints` and `hover`.
+
+## Formatter config (`.gluafmtrc.json`)
+
+Indentation, line width, quote style, block collapsing.
+
+```json
+{
+  "useTabs": false,
+  "indentSize": 4,
+  "maxLineWidth": 120,
+  "quoteStyle": "double",
+  "keepSingleLineBlocks": true,
+  "overrides": [
+    {
+      "files": ["lua/config/**"],
+      "options": { "indentSize": 2 }
+    }
+  ]
+}
+```
+
+- `useTabs`: indent with tabs instead of spaces.
+- `indentSize`: spaces per indent level. Still used when `useTabs` is true, as the assumed display width of a tab when measuring line length.
+- `maxLineWidth`: soft wrap target for long lines.
+- `quoteStyle`: `"double"` or `"single"` for string literals.
+- `keepSingleLineBlocks`: preserve one-line `if` blocks instead of forcing expansion.
+- `overrides`: an **array** of `{ "files": [...], "options": {...} }`, applied in order. In the example, files under `lua/config/**` use two-space indentation.
+
+See the [`gluafmtrc.schema.json` reference](/glua/reference/gluafmtrc-schema) for every property, including `operatorStyle`, `commentStyle` and `endOfLine`.
+
+<Info>
+  Both `.glua.json` and `.gluafmtrc.json` are generated with a `$schema` pointing at [glua.bluejutzu.dev/schemas](https://glua.bluejutzu.dev/schemas), so you get IntelliSense and validation while editing them — no `node_modules` required.
+</Info>

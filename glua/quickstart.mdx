@@ -1,0 +1,112 @@
+---
+title: "Get Started with GLua"
+description: "A five-minute tour of GLua: type tracking, realm checks, net message validation, and inline suppressions with real code examples."
+icon: "rocket"
+sidebarTitle: "Quickstart"
+---
+
+Five minutes, six things: what completion looks like when it knows the type of a value, how realms catch cross-realm calls before you run the game, how net messages are checked end to end, and how to silence a false positive inline.
+
+## 1) Completion follows the value
+
+Assign something the extension recognises and completion offers the methods that thing actually has. A player, a panel, a loop variable — the list changes with the type, not the name.
+
+```lua
+local ply = player.GetByID(1)
+ply: -- suggests :GetName, :Alive, :Kick, etc.
+
+local frame = vgui.Create("DFrame")
+frame: -- suggests :SetTitle, :SetSize, :MakePopup, etc.
+
+for _, ent in ipairs(ents.GetAll()) do
+    ent: -- suggests :GetPos, :GetClass, :Remove, etc.
+end
+```
+
+## 2) Your own functions
+
+Annotate them if you want, or don't and let the extension read the type from how the parameters are used.
+
+<CodeGroup>
+
+```lua Annotated
+---@param target Player
+---@param damage number
+---@return boolean
+function HurtPlayer(target, damage)
+    if not IsValid(target) then return false end
+    target:TakeDamage(damage)
+    return true
+end
+```
+
+```lua Inferred
+function HurtPlayer(target, damage)
+    if not IsValid(target) then return false end
+    target:TakeDamage(damage)
+    return true
+end
+```
+
+</CodeGroup>
+
+With annotations, callers get completion and diagnostics on every parameter. Without them, inference reads the type from the methods called on each parameter — enough for most helpers.
+
+## 3) Realms are not a suggestion
+
+GLua code runs on the server, the client, or both. The file's path decides which, and a call to an API that does not exist in that realm is reported where you write it:
+
+```lua
+-- File: lua/autorun/client/my_addon.lua (clientside file)
+
+local ply = LocalPlayer()
+ply:Kick("Reason") -- realm error: Kick is server-only
+```
+
+Move the code to a server file, or send a net message from here — the diagnostic tells you which realm the API belongs to.
+
+## 4) Net messages checked end to end
+
+`net.Start` on one side and `net.Receive` on the other are paired across files and their write/read sequences compared. Mismatch the payload and it is flagged before the message runs.
+
+```lua
+-- Server: lua/autorun/server/net.lua
+util.AddNetworkString("MyMessage")
+net.Start("MyMessage")
+net.WriteString("Hello")
+net.WriteEntity(someEntity)
+net.Send(ply)
+```
+
+```lua
+-- Client: lua/autorun/client/net.lua
+net.Receive("MyMessage", function()
+    local msg = net.ReadString()
+    local id = net.ReadUInt(8) -- payload mismatch: server sent WriteEntity, client reads ReadUInt
+end)
+```
+
+## 5) Silencing a finding
+
+When a diagnostic is wrong for a specific line, suppress that line rather than turning the rule off:
+
+```lua
+-- glua-ignore
+local x = SomeAmbiguousCall()
+```
+
+The comment goes on the line above the statement it covers. Every other diagnostic on that line still fires.
+
+## 6) Commands worth knowing
+
+Open the Command Palette (**Ctrl\+Shift\+P** or **Cmd\+Shift\+P**) and type `GLua:` to find these:
+
+| Command | What it does |
+| --- | --- |
+| `GLua: Show Net Message Graph` | Visualise net message senders and receivers across your workspace |
+| `GLua: Create Linter Config File` | Generate a `.glua.json` file in the current workspace root |
+| `GLua: Create Formatter Config File` | Generate a `.gluafmtrc.json` file in the current workspace root |
+| `GLua: Re-index Workspace` | Force a full re-index after large changes or dataset updates |
+| `GLua: Open Settings` | Jump to the GLua settings panel |
+
+Run `GLua: Show Net Message Graph` on your project to see every sender and receiver, and how their payloads line up, in one view.

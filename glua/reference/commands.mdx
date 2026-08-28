@@ -1,0 +1,40 @@
+---
+title: "GLua Commands"
+description: "All VS Code commands provided by GLua, with what each one does and when to reach for it during Garry's Mod addon development."
+icon: "keyboard"
+sidebarTitle: "Commands"
+---
+
+Everything the extension does from the Command Palette. Reach for these to inspect a project, seed a config file, or force a re-scan when a bulk file change slipped past the watcher.
+
+| Command | Description |
+| --- | --- |
+| `GLua: Show Net Message Graph` | Opens a graph of every net message in your workspace. Shows who registers the message, who sends it, and who handles it. Use this to find orphaned or mismatched net traffic. |
+| `GLua: Create Linter Config File` | Writes a `.glua.json` file into the workspace root using your current settings as the baseline. Edit the file afterward to tune rule severity. |
+| `GLua: Create Formatter Config File` | Writes a `.gluafmtrc.json` file into the workspace root using your current formatter settings as the baseline. |
+| `GLua: Re-index Workspace` | Forces a full rescan of the workspace. Reach for this after large disk changes (for example, switching Git branches or bulk file moves) when the incremental watcher may have missed events. |
+| `GLua: Project Report` | Opens a [whole-project health report](/glua/features/report) — net message health, collisions, unknown globals, and the files worth looking at. |
+| `GLua: Open Settings` | Opens the GLua settings page in the VS Code Settings UI. |
+| `GLua: Check Whole Workspace` | Reports problems in every indexed file, not just the ones you have open. Set `glua.diagnostics.scope` to `workspace` to do this automatically after indexing. |
+| `GLua: Clear Workspace Problems` | Clears reported problems for files that are not open. |
+| `GLua: Restart Language Server` | Restarts the server process. |
+| `GLua: Treat This File As GLua` | Forces GLua analysis for the current file. |
+| `GLua: Treat This File As Plain Lua` | Hands the current file back to your other Lua extension. |
+
+## Code lens
+
+Counts appear above the things whose other half lives in another file — a `net.Receive` shows how many senders it has, a `net.Start` how many handlers, a custom `hook.Add` how many call sites, and a global function how many references. Clicking one opens the peek view.
+
+## Call hierarchy
+
+Put the cursor on a function and open the call hierarchy — **Shift\+Alt\+H** in VS Code, or `Show Call Hierarchy` from the Command Palette — to see who calls it across the workspace, or switch the tree to outgoing calls to see what it reaches. Callbacks are named after what registers them, so a chain ending in a render hook says so, which is the same graph the [hot path rule](/glua/features/hot-paths) walks.
+
+Calls made through a value rather than a name — a function passed in as an argument, or stored in a table and looked up at runtime — are left out rather than guessed at.
+
+## Outside the editor
+
+Everything the linter and formatter do is also available from the [command line](/glua/reference/cli), which is how you run them in CI.
+
+<Tip>
+  Command Palette: **Ctrl\+Shift\+P** on Windows/Linux, **Cmd\+Shift\+P** on macOS. Type `GLua:` to filter to these.
+</Tip>

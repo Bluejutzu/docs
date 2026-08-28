@@ -1,0 +1,61 @@
+---
+title: "Net Message Analysis Across Files"
+description: "GLua indexes both halves of every net message to catch unregistered strings, missing sends, orphaned receivers, and payload mismatches."
+icon: "tower-broadcast"
+sidebarTitle: "Net Messages"
+---
+
+A net message is only correct when its two halves agree, and the two halves live in different files. Every `net.Start`, `net.Receive` and `util.AddNetworkString` in the workspace is paired with its counterpart, so a message that fails only at runtime shows up while you are writing it.
+
+## What is checked
+
+Four ways the two halves fail to line up:
+
+- **Unregistered strings.** `net.Start` on a name never passed to `util.AddNetworkString`. Fails on the first send.
+- **Missing sends.** A `net.Start` block that never reaches `Send`, `Broadcast` or `SendToServer` — the message is built and thrown away.
+- **Orphaned receivers.** A `net.Receive` for a name nothing ever sends. Usually a rename that only happened on one side.
+- **Payload mismatches.** The `net.Write*` sequence on the sender does not match the `net.Read*` sequence on the handler.
+
+## Payload mismatch example
+
+Read an `Entity` as a `UInt` and no error is raised — you just get nonsense. The rule catches that before you send the message.
+
+<CodeGroup>
+
+```lua Server
+util.AddNetworkString("MyMessage")
+
+net.Start("MyMessage")
+net.WriteString("Hello")
+net.WriteEntity(someEntity)
+net.Broadcast()
+```
+
+```lua Client
+net.Receive("MyMessage", function()
+    local msg = net.ReadString()
+    local id = net.ReadUInt(8) -- Mismatch: server wrote Entity, client reads UInt
+end)
+```
+
+</CodeGroup>
+
+Diagnostic on the second read, because that is where the sequences diverge.
+
+## Completion and rename
+
+### Message name completion
+
+Inside a `net.Start` or `net.Receive` string, completion offers every name registered with `util.AddNetworkString` anywhere in the workspace.
+
+### Rename support
+
+Rename a network string on its `util.AddNetworkString` and every `net.Start` and `net.Receive` that uses the same name is renamed with it.
+
+## Net message graph
+
+**GLua: Show Net Message Graph** opens a view of every net message in the workspace: which files send each one, which handle it, and what the payload looks like on either side.
+
+<Tip>
+  Open the Command Palette (Ctrl\+Shift\+P or Cmd\+Shift\+P) and run `GLua: Show Net Message Graph`.
+</Tip>

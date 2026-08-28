@@ -1,0 +1,497 @@
+---
+title: "Command Line Interface"
+description: "Lint and format Garry's Mod Lua outside the editor with the glua CLI, using the same analysis as the language server so CI and your editor agree."
+icon: "terminal"
+sidebarTitle: "CLI"
+---
+
+The `glua` command runs the same parser, analyser and formatter as the extension,
+so a finding in CI is the same finding you saw in the editor. Use it to gate pull
+requests or format a whole addon in one go.
+
+## Installing
+
+Published on npm as [`glua-cli`](https://www.npmjs.com/package/glua-cli). The
+analyser and the wiki dataset are bundled into it, so it pulls in no dependencies
+of its own.
+
+```bash
+pnpm add -D glua-cli
+```
+
+To try it without adding it to a project:
+
+```bash
+npx glua-cli lint lua/
+```
+
+Or build it from the repository:
+
+```bash
+git clone https://github.com/Bluejutzu/glua-lsp
+cd glua-lsp
+pnpm install
+pnpm run build
+node packages/glua-cli/dist/glua.js --help
+```
+
+## `glua init`
+
+Writes `.glua.json` and `.gluafmtrc.json`, seeded from the defaults the server
+already uses — so a fresh config describes what you have rather than changing
+anything the moment it lands.
+
+```bash
+glua init
+```
+
+```bash
+glua init --lint-only          # just .glua.json
+glua init --format-only        # just .gluafmtrc.json
+glua init --root path/to/addon
+```
+
+An existing config is left alone and the command exits non-zero, so it is safe
+to run twice. Pass `--force` to replace one deliberately.
+
+Both files carry a `$schema` pointing at
+[glua.bluejutzu.dev/schemas](https://glua.bluejutzu.dev/schemas), so an editor
+completes and validates them without needing `node_modules` — a GMod addon
+usually has no Node project at all.
+
+## `glua lint`
+
+```bash
+glua lint lua/
+glua lint lua/autorun/server/sv_main.lua
+glua lint . --quiet --max-warnings 0
+```
+
+| Flag | Description |
+| --- | --- |
+| `-f, --format <format>` | `pretty` (default), `compact`, `github`, `json`, `sarif` |
+| `--root <dir>` | Project root for config files and relative paths |
+| `--max-warnings <n>` | Exit non-zero above this many warnings |
+| `-q, --quiet` | Only report errors |
+| `--suppress-all` | Accept every current finding into `.glua-baseline.json` |
+| `--prune-suppressions` | Rewrite the baseline so it claims no more than still happens |
+| `--ignore-baseline` | Report everything, as though the project had no baseline |
+| `--fix` | Apply the fixes that have one sensible outcome |
+| `--fix-dry-run` | Show what `--fix` would change, writing nothing |
+| `--unsafe-fixes` | Let `--fix` also apply fixes that change what the code does |
+| `--no-code-frames` | One line per finding, without the source |
+| `--timing` | Report where the time went |
+| `--no-cache` | Do not read or write `.glua-cache` |
+| `--stdin-filepath <file>` | Lint text from stdin as though it lived at this path |
+
+Exits `1` when there are errors, or when `--max-warnings` is exceeded. Otherwise `0`.
+
+### What it prints
+
+Each finding comes with the line it is about and the part it is about
+underlined, because a line number alone is a lookup instruction and in a CI log
+there is no file to open:
+
+```
+lua/autorun/sh_mistakes.lua
+  36:12  warning  Net message 'nobody_registered_this' is never registered with util.AddNetworkString.  net-unregistered
+     35 │ -- A net message that is never registered.
+     36 │ net.Start("nobody_registered_this")
+        │            ──────────────────────
+     37 │ net.Broadcast()
+```
+
+`--no-code-frames` goes back to one line per finding. The machine formats
+(`compact`, `github`, `json`, `sarif`) are unaffected either way.
+
+### Where the time goes
+
+```bash
+glua lint lua/ --timing
+```
+
+```
+Timing
+──────────────────
+
+  index     412ms   the whole project
+  check      38ms   the files asked for
+  total     455ms
+
+  slowest files
+    lua/darkrp_modules/big.lua  22ms
+```
+
+Indexing covers the whole project even when you lint one file, since cross-file
+rules are only correct once the index has seen everything. When those two
+numbers are far apart, that is what you are paying for — which is what the cache
+below is for.
+
+### Caching
+
+Each file's facts — the globals it defines, the hooks it adds, the net messages
+it sends, who calls what — are written to `.glua-cache` keyed by a hash of the
+file's contents. A later run reads them back instead of parsing the file again.
+
+On a 300-file addon:
+
+| | cold | warm |
+| --- | --- | --- |
+| `glua lint .` | 917ms | 622ms |
+| `glua lint one-file.lua` | 385ms | 124ms |
+
+Linting one file gains most, because the other 299 are indexed purely so the
+cross-file rules are right, and none of that work changed.
+
+<Note>
+  Findings are never cached, only facts. `net-never-received` depends on every
+  other file in the project, so a cached finding would be wrong the moment an
+  unrelated file gained a `net.Receive`. Every finding is recomputed from the
+  whole set on every run, cache or no cache.
+</Note>
+
+The key is a content hash rather than a modification time, so a checkout, a
+branch switch or a restored backup does not invalidate anything, and `touch` is
+not a reason to redo the work. The directory writes its own `.gitignore`, and
+an upgrade of `glua` discards the cache rather than reading facts a different
+build wrote. Anything that goes wrong with it — corrupt file, read-only
+checkout — is a cache miss rather than an error.
+
+`--no-cache` skips it in both directions. `glua fmt` never touches it.
+
+### Linting stdin
+
+An editor integration usually has a buffer that has not been saved, or has been
+saved with contents different from what is on disk. `--stdin-filepath` lints
+whatever comes in on stdin as though it were the file at that path:
+
+```bash
+cat lua/autorun/sh_main.lua | glua lint --stdin-filepath lua/autorun/sh_main.lua
+```
+
+The path decides the file's realm and what the cross-file rules match it
+against — a `net.Start` typed into an unsaved `sv_` file is still checked
+against the project's other `net.Receive` calls. It does not need to exist on
+disk at all; the rest of the project is still indexed around it normally.
+
+Code frames quote the piped text, not whatever the path happens to hold on
+disk. `--fix`, `--suppress-all` and `--prune-suppressions` all write back to a
+real file, so none of them can be combined with `--stdin-filepath`.
+
+### Fixing
+
+`--fix` applies only the quick fixes with a single correct outcome, then reports
+whatever is left:
+
+```bash
+glua lint lua/ --fix
+```
+
+```
+lua/autorun/server/sv_net.lua
+  ✓ Add util.AddNetworkString("my_message")
+  ✓ Rewrite as 'count = count + ...'
+
+  fixed 2 in 1 file, of 40 checked
+  2 left, which need a look — run `glua lint` to see them
+```
+
+What it will fix: a missing `util.AddNetworkString` in a server file, a missing
+`AddCSLuaFile` above an include, and a C-style compound assignment.
+
+### Safe and unsafe fixes
+
+A fix is **safe** when the code does the same thing afterwards. It is **unsafe**
+when it very probably does what you wanted but the tool cannot promise it — the
+value now evaluates at a different moment, or the edit lands somewhere the tool
+had to guess. Hoisting a `Material` call out of `HUDPaint` is the clearest case:
+it is the right change nearly every time, and it moves the lookup from every
+frame to the moment the file loads.
+
+`--fix` applies only the safe ones, and says what it left behind:
+
+```
+  ✓ nothing to fix in 40 files
+  1 left, which need a look — run `glua lint` to see them
+  → 1 unsafe fix available — run with `--unsafe-fixes` to apply them
+```
+
+```bash
+glua lint lua/ --fix --unsafe-fixes
+```
+
+This matters most where `--fix` runs with nobody watching — a pre-commit hook,
+a CI job, format-on-save. In the editor every fix is offered normally; the split
+is about what gets applied unattended.
+
+| Fix | |
+| --- | --- |
+| Add `util.AddNetworkString(...)` | Safe in a server file, unsafe elsewhere — the line goes to the top, above any realm guard |
+| Add `AddCSLuaFile(...)` above an include | Safe |
+| Rewrite `x += 1` as `x = x + 1` | Safe — the file did not parse as written |
+| Hoist a hot call into a local | Unsafe — it changes when the call runs |
+
+<Note>
+  `--unsafe-fixes` on its own exits `2`. It only means something alongside
+  `--fix` or `--fix-dry-run`.
+</Note>
+
+<Note>
+  It deliberately will not add a `net.Receive` stub, rename an unused local,
+  wrap a call in a realm guard, or correct a hook name from a spelling
+  suggestion. Each of those either guesses, changes control flow, or leaves a
+  body for you to write — none of which should happen unattended.
+</Note>
+
+Fixes run in passes, since resolving one can reveal another, capped at five so a
+pair that undo each other cannot spin. An identical fix asked for twice — two
+sends of the same unregistered message both wanting the same
+`util.AddNetworkString` line — is written once.
+
+<Warning>
+  Fixing does not change the exit code rules. Anything left over is still
+  reported, so an error no fix could settle still exits `1`, and
+  `--max-warnings` still applies to what remains. `--fix` cannot turn a failing
+  build green.
+</Warning>
+
+<Note>
+  The whole project gets indexed even when you lint a single file. Cross-file rules — an unhandled net message, a duplicate hook identifier, a missing `AddCSLuaFile` — are only correct once the index has seen everything.
+</Note>
+
+### Output formats
+
+<CodeGroup>
+
+```text pretty
+lua/autorun/sh_mistakes.lua
+  9:11   info     'PlayerSpawned' is not a documented gamemode hook…  unknown-hook
+  41:9   error    Compound assignment '+=' is not valid Lua.          compound-assignment
+
+Summary
+───────────────────
+
+  1 error  •  5 warnings  in 5 files
+```
+
+```text compact
+lua/autorun/sh_mistakes.lua:41:9: error: Compound assignment '+=' is not valid Lua. [compound-assignment]
+```
+
+```text github
+::error file=lua/autorun/sh_mistakes.lua,line=41,col=9,title=glua(compound-assignment)::Compound assignment '+=' is not valid Lua.
+```
+
+```json json
+[
+  {
+    "file": "lua/autorun/sh_mistakes.lua",
+    "line": 41,
+    "column": 9,
+    "severity": "error",
+    "code": "compound-assignment",
+    "url": "https://glua.bluejutzu.dev/reference/rules#compound-assignment",
+    "message": "Compound assignment '+=' is not valid Lua."
+  }
+]
+```
+
+```json sarif
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "glua",
+          "rules": [
+            {
+              "id": "compound-assignment",
+              "helpUri": "https://glua.bluejutzu.dev/reference/rules#compound-assignment"
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "compound-assignment",
+          "level": "error",
+          "message": { "text": "Compound assignment '+=' is not valid Lua." },
+          "locations": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+## `glua fmt`
+
+```bash
+glua fmt lua/            # report what would change
+glua fmt lua/ --write    # apply it
+glua fmt lua/ --check    # verify, for CI
+```
+
+| Flag | Description |
+| --- | --- |
+| `-w, --write` | Rewrite files in place |
+| `-c, --check` | Exit non-zero if anything would change, write nothing |
+| `--root <dir>` | Project root for config files |
+
+<Warning>
+  Files that do not parse are skipped and reported, never rewritten. Formatting broken code is how one problem becomes two.
+</Warning>
+
+## `glua rules`
+
+Lists every diagnostic code alongside its settings key. Worth knowing because
+the two are different: `net-payload-mismatch` is what you suppress inline,
+`netReadWriteMismatch` is what you set in `.glua.json`.
+
+Each code has a section in the [rule reference](/glua/reference/rules) explaining
+what it catches. Diagnostics link there directly, so in an editor you can click
+the code in the Problems panel rather than looking it up.
+
+## `glua explain`
+
+What one rule means, without leaving the terminal:
+
+```bash
+glua explain perf-hot-path
+```
+
+```
+perf-hot-path
+─────────────────────────
+
+  Expensive work reached from something the engine runs every frame or tick.
+
+  settings key  perfHotPath
+  suppress      -- glua-ignore perf-hot-path
+  read more     https://glua.bluejutzu.dev/reference/rules#perf-hot-path
+```
+
+Given a settings key instead of a code — `glua explain unusedLocal` — it says
+which code you meant (`unused-local`) rather than pretending nothing matched,
+since that mix-up is the one [`unused-suppression`](/glua/reference/rules#unused-suppression)
+exists to catch. Exits `2` for anything it cannot resolve.
+
+## Configuration
+
+The CLI reads exactly the same files as the editor — `.glua.json`,
+`.gluafmtrc.json`, `.editorconfig`, `.prettierrc` — resolved from `--root` or the
+working directory. See [Configuration](/glua/configuration/overview).
+
+## In GitHub Actions
+
+The `github` format emits workflow annotations, so findings appear inline on the
+pull request diff.
+
+```yaml
+name: Lint
+on: [push, pull_request]
+
+jobs:
+  glua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec glua lint lua/ --format github
+      - run: pnpm exec glua fmt lua/ --check
+```
+
+### Adopting on a codebase you inherited
+
+Most Garry's Mod code is code somebody else wrote. Running a linter over it for
+the first time produces hundreds of findings, none of which are the change you
+were making — and that is how a linter gets switched back off.
+
+A baseline draws a line under what already exists:
+
+```bash
+glua lint lua/ --suppress-all     # writes .glua-baseline.json, reports nothing
+```
+
+See the [`baseline.schema.json` reference](/glua/reference/baseline-schema) for what this file actually contains.
+
+Commit that file. From then on the rules are enforced on everything written
+after it, and the backlog waits until you want it:
+
+```bash
+glua lint lua/                    # only findings the baseline does not cover
+glua lint lua/ --ignore-baseline  # the whole backlog again, when you want to chip at it
+```
+
+The baseline counts findings per file and rule rather than recording line
+numbers, so moving code around does not invalidate it. A file with two unused
+locals accepts two; add a third and the third is reported.
+
+When you fix something the baseline was covering, it says so:
+
+```
+2 accepted by .glua-baseline.json
+1 baseline entry claims findings that no longer happen — run --prune-suppressions
+```
+
+```bash
+glua lint lua/ --prune-suppressions    # rewrite it to match what still happens
+```
+
+<Note>
+  Pruning is a deliberate act, not an automatic one: a baseline quietly rewriting itself downward would let a rule silently stop being enforced. It is also worth running in CI as a check — a drifted baseline is a sign the code improved and nobody noticed.
+</Note>
+
+<Warning>
+  `--suppress-all` and `--prune-suppressions` cannot be combined with `--fix`. Fixing the code and accepting the code are opposite decisions, and doing both in one pass makes it impossible to see which happened.
+</Warning>
+
+### Code scanning
+
+`--format sarif` writes [SARIF 2.1.0](https://sarifweb.azurewebsites.net), which
+GitHub code scanning ingests. Worth having over `--format github`: annotations
+live and die with one workflow run, whereas uploaded findings get a history, a
+place to be dismissed, and a diff between the pull request and the base branch.
+
+```yaml
+name: Lint
+on: [push, pull_request]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  glua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec glua lint lua/ --format sarif > glua.sarif
+        continue-on-error: true
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: glua.sarif
+```
+
+<Note>
+  Paths in the file are relative to `--root`, or to the directory you ran from. Run it from the repository root, or pass `--root`, so the uploaded locations line up with the files on the diff. `continue-on-error` is there so findings still upload when the lint exits non-zero.
+</Note>
+
+## Colour
+
+Honours [`NO_COLOR`](https://no-color.org) and turns itself off when piped.
+`--no-color` disables it explicitly, `FORCE_COLOR=1` forces it on through a pipe.

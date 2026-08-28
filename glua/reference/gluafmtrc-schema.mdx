@@ -1,0 +1,111 @@
+---
+title: "$schema Reference for .gluafmtrc.json"
+description: "Every property gluafmtrc.schema.json accepts, with its type, range and default — the schema behind .gluafmtrc.json's IntelliSense and validation."
+icon: "ruler"
+sidebarTitle: "gluafmtrc.schema.json"
+---
+
+`.gluafmtrc.json` is validated against
+[glua.bluejutzu.dev/schemas/gluafmtrc.schema.json](https://glua.bluejutzu.dev/schemas/gluafmtrc.schema.json),
+the same schema `glua init` and **GLua: Create Formatter Config File** point
+`$schema` at. This page documents every property it accepts. See the
+[Formatter](/glua/features/formatter) page for what each option actually changes in
+your code, and [Config Files](/glua/configuration/config-files) for a shorter
+overview alongside `.glua.json`.
+
+<Info>
+  The schema sets `additionalProperties: false`, so a typo'd key is flagged in your editor rather than silently ignored.
+</Info>
+
+## Properties
+
+<ParamField path="$schema" type="string">
+  URL of the JSON schema for this file. Written automatically by `glua init` and the VS Code command.
+</ParamField>
+
+<ParamField path="useTabs" type="boolean" default="true">
+  Indent with tabs instead of spaces.
+</ParamField>
+
+<ParamField path="indentSize" type="integer, 1-16" default="4">
+  Spaces per indent level — and, when `useTabs` is on, the assumed display width of a tab for measuring line length.
+</ParamField>
+
+<ParamField path="maxLineWidth" type="integer, 40-400" default="120">
+  Column at which tables and argument lists wrap.
+</ParamField>
+
+<ParamField path="quoteStyle" type='"preserve" | "double" | "single"' default="preserve">
+  Preferred string quotes. A string is only rewritten when doing so needs no extra escaping.
+</ParamField>
+
+<ParamField path="operatorStyle" type='"preserve" | "lua"' default="preserve">
+  `"lua"` rewrites GLua's C-style operators `!= && || !` as `~= and or not`.
+</ParamField>
+
+<ParamField path="commentStyle" type='"preserve" | "lua"' default="preserve">
+  `"lua"` rewrites `//` and `/* */` comments as `--` and `--[[ ]]`.
+</ParamField>
+
+<ParamField path="spaceInsideParens" type="boolean" default="false">
+  Write `func( a, b )` instead of `func(a, b)` — the style used across the Garry's Mod wiki.
+</ParamField>
+
+<ParamField path="keepSingleLineBlocks" type="boolean" default="true">
+  Keep blocks written on one line on one line, e.g. `if not IsValid(ent) then return end`. See [idiomatic one-liners](/glua/features/formatter#idiomatic-one-liners).
+</ParamField>
+
+<ParamField path="maxBlankLines" type="integer, 0-10" default="2">
+  Consecutive blank lines to keep between statements.
+</ParamField>
+
+<ParamField path="semicolons" type='"remove" | "preserve"' default="remove">
+  Whether to keep optional trailing semicolons.
+</ParamField>
+
+<ParamField path="endOfLine" type='"\n" | "\r\n"'>
+  Line ending to write. Defaults to whatever the file already uses.
+</ParamField>
+
+<ParamField path="overrides" type="Override[]">
+  Per-path formatting overrides, applied in order; later entries win — see [below](#overrides).
+</ParamField>
+
+```json
+{
+  "$schema": "https://glua.bluejutzu.dev/schemas/gluafmtrc.schema.json",
+  "useTabs": false,
+  "indentSize": 2,
+  "maxLineWidth": 100,
+  "quoteStyle": "double"
+}
+```
+
+## `overrides`
+
+An array of objects, applied in order — later entries win when two overrides
+match the same file. Unlike `.glua.json`'s overrides, `options` is **required**
+and only accepts formatting keys — no `diagnostics` or `globals` here.
+
+<ParamField path="files" type="string[]" required>
+  Glob patterns relative to this file's directory, e.g. `lua/vendor/**`. At least one entry.
+</ParamField>
+
+<ParamField path="options" type="object" required>
+  A subset of the [top-level properties](#properties) above (excluding `$schema` and `overrides`) to apply to matching files.
+</ParamField>
+
+```json
+{
+  "overrides": [
+    {
+      "files": ["lua/config/**"],
+      "options": { "indentSize": 2 }
+    }
+  ]
+}
+```
+
+<Note>
+  Options not listed in an override keep whatever the top-level config (or the built-in default) says — an override only replaces the keys it names.
+</Note>

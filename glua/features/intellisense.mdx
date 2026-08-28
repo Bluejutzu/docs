@@ -1,0 +1,157 @@
+---
+title: "IntelliSense and Type Tracking for GLua"
+description: "GLua tracks types through calls, string literals, loops, and metatables so completion always resolves to the right class."
+icon: "wand-magic-sparkles"
+sidebarTitle: "Intellisense"
+---
+
+Completion and hover follow the type of the value, not the name of the variable. Types propagate through function calls, string literals, loops and metatables, read from the bundled Garry's Mod wiki dataset.
+
+## Type tracking
+
+The server knows how the common GLua functions transform types, and carries that through the rest of the file.
+
+### Player lookup
+
+When you call `player.GetByID`, the server knows the result is a `Player` entity:
+
+```lua
+local ply = player.GetByID(1)
+ply:Kick("Reason") -- completion offers Player methods
+```
+
+### Panel creation
+
+`vgui.Create` with a known panel class returns that type:
+
+```lua
+local frame = vgui.Create("DFrame")
+frame:SetTitle("Hello") -- completion offers DFrame methods
+```
+
+### Loop iteration
+
+`ipairs` over a player list types each element as `Player`:
+
+```lua
+for _, ply in ipairs(player.GetAll()) do
+    ply:ChatPrint("Hello") -- ply is typed as Player
+end
+```
+
+### Typed hook sender
+
+When you register a hook with a typed sender parameter, the callback receives the correct type:
+
+```lua
+hook.Add("PlayerSay", "MyAddon", function(sender, text, teamChat)
+    sender:Kick("Spam") -- sender is typed as Player
+end)
+```
+
+### Entity methods
+
+Inside `ENT` methods, `self` is typed as `Entity`:
+
+```lua
+function ENT:Initialize()
+    self:SetModel("models/props_c17/oildrum001.mdl") -- self is Entity
+end
+```
+
+## Generated accessors
+
+Garry's Mod creates getters and setters at runtime that appear nowhere in your source, so nothing else knows they exist. Both forms are tracked:
+
+```lua
+function ENT:SetupDataTables()
+    self:NetworkVar("Int", 0, "Ammo")
+    self:NetworkVar("Entity", 0, "Owner")
+end
+
+AccessorFunc(ENT, "m_Speed", "Speed", FORCE_NUMBER)
+
+function ENT:Think()
+    self:GetAmmo()      -- number
+    self:SetOwner(ply)  -- Entity
+    self:GetSpeed()     -- number, from AccessorFunc
+end
+```
+
+Declarations carry across the whole entity directory, so a `NetworkVar` in `shared.lua` completes in `init.lua` and `cl_init.lua` as well. Entities in other directories keep their accessors to themselves.
+
+## Your own entity and weapon classes
+
+Garry's Mod takes a scripted class name from where its files sit, so `lua/entities/my_turret/` defines the class `my_turret`. Spawning one gives you that class rather than a bare `Entity`:
+
+```lua
+local turret = ents.Create("my_turret")
+
+turret:Explode()   -- a method the entity defines on ENT
+turret:GetAmmo()   -- an accessor from its NetworkVar
+turret:SetModel()  -- and the whole Entity API underneath
+```
+
+This works the same for weapons in `lua/weapons/` and for the calls that take a class name: `ents.FindByClass` (as an array), `ents.CreateClientside`, `weapons.Get`, and `Player:Give`.
+
+The class name itself completes inside the string, and go-to-definition on it opens the class, preferring `shared.lua` where there is one.
+
+An engine class like `prop_physics` is left alone and stays a plain `Entity` — nothing in the workspace defines it, so there is nothing extra to offer.
+
+## Typing your own functions
+
+Annotate them, or let inference read the type from the methods called on each parameter. Both work; you can mix them freely.
+
+<CodeGroup>
+
+```lua Annotated
+---@param target Player
+---@param message string
+---@return boolean
+function NotifyPlayer(target, message)
+    target:ChatPrint(message)
+    return true
+end
+```
+
+```lua Inferred
+function NotifyPlayer(target, message)
+    target:ChatPrint(message) -- target inferred as Player from ChatPrint call
+    return true               -- return type inferred as boolean
+end
+```
+
+</CodeGroup>
+
+## Supported annotation tags
+
+GLua uses the same annotation dialect as Lua Language Server.
+
+| Tag | Purpose | Example |
+| --- | --- | --- |
+| `---@param` | Declare parameter type | `---@param ply Player` |
+| `---@return` | Declare return type | `---@return boolean` |
+| `---@type` | Cast an expression | `---@type Player` |
+| `---@class` | Define a custom class | `---@class MyPanel : DPanel` |
+| `---@field` | Add a field to a class | `---@field Name string` |
+| `---@deprecated` | Mark as deprecated | `---@deprecated Use NewFunc instead` |
+
+You can also use union types, optional parameters, and array syntax:
+
+```lua
+---@param items (string|number)[]
+---@param options? table
+---@return string|nil
+```
+
+## How inference falls back
+
+When an exact type is not available, the server picks the least wrong thing rather than guessing:
+
+1. **Ambiguous sets.** A value that is sometimes a `Player` and sometimes an `NPC` narrows to their common ancestor, `Entity`. The completion list is the methods both actually have.
+2. **Nothing to work with.** A value the server cannot classify at all stays `any`. Generic Lua completions still work; no Garry's Mod methods are offered.
+3. **An explicit annotation always wins.** `---@type` and `---@param` override whatever inference decided.
+
+<Tip>
+  Annotations pay for themselves most at module boundaries: shared files called from multiple realms, library functions used by other addons. Everywhere else, inference is usually enough.
+</Tip>

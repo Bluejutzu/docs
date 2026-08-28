@@ -1,0 +1,113 @@
+---
+title: optimize
+description: Run a directory through a preset.
+---
+
+```bash
+bmux optimize <input> [options]
+```
+
+`optimize` is the one you reach for when you don't want to think about settings. Point it at a
+directory, pick a preset, and it resizes and re-encodes everything inside — **keeping each file's
+existing format** unless you say otherwise.
+
+```bash
+bmux optimize photos --preset web --out optimized
+```
+
+## Arguments
+
+<ParamField path="input" type="string" required>
+  The directory to optimize. Searched recursively for image files.
+</ParamField>
+
+## Options
+
+<ParamField query="--preset" type="string" default="web">
+  Which preset to apply: `web`, `social`, or `email`. See the table below for what each one does.
+</ParamField>
+
+<ParamField query="--to" type="string">
+  Convert everything to this format instead of keeping each file's source format.
+</ParamField>
+
+<ParamField query="--out" type="string">
+  Directory to write results into. Defaults to writing next to each input file — see the warning
+  below for why you usually want to set this.
+</ParamField>
+
+<ParamField query="--preserve-metadata" type="boolean" default="false">
+  Keep EXIF/XMP in the output. Metadata is stripped unless you pass this.
+</ParamField>
+
+<ParamField query="--strip-metadata" type="boolean" deprecated>
+  A no-op — metadata is already stripped by default. Accepted so the flag doesn't error if you
+  write it out of habit.
+</ParamField>
+
+<ParamField query="--manifest" type="string">
+  Write a JSON report of the results to this path. Same shape as
+  [`convert`](/bmux/commands/convert#manifests).
+</ParamField>
+
+<ParamField query="--dry-run" type="boolean" default="false">
+  Report what would be written without writing it.
+</ParamField>
+
+## Presets
+
+| Preset | Longest side | Quality | For |
+| --- | --- | --- | --- |
+| `web` *(default)* | 2400px | 82 | Page images where detail still matters |
+| `social` | 1600px | 80 | Posts and previews |
+| `email` | 1200px | 75 | Attachments that need to stay small |
+
+Images smaller than the preset's limit aren't scaled up — the limit is a ceiling, not a target.
+
+## Two behaviours worth knowing
+
+<Warning>
+  **It recurses, and it will find its own previous output.** Run `optimize` on a directory without
+  `--out` and a second run picks up the files the first run created. Always write somewhere
+  separate — `bmux optimize photos --preset web --out optimized`
+</Warning>
+
+**Extensions get normalised.** Keeping the source format means keeping the format, not the
+spelling — a `.jpg` input comes back as `.jpeg`, because that's the canonical extension for
+`image/jpeg`. If you need the original spelling, use [`convert`](/bmux/commands/convert) instead.
+
+## Changing format at the same time
+
+`--to` overrides the keep-source-format behaviour, so you can resize and convert in one pass:
+
+```bash
+bmux optimize photos --preset social --to webp --out dist
+```
+
+## Checking first
+
+Because `optimize` touches a whole directory, `--dry-run` is worth the habit:
+
+```bash
+bmux optimize photos --preset web --out optimized --dry-run
+```
+
+```
+✔ photos/a.png -> optimized/a.png (would write, 62.0% smaller)
+✔ photos/b.jpg -> optimized/b.jpeg (would write, 41.3% smaller)
+
+2 succeeded, 0 failed, 0 skipped.
+```
+
+## Files it can't identify
+
+Format is detected from file contents, not the extension. Anything that isn't a supported image is
+reported as failed and the rest of the batch continues:
+
+```
+✘ photos/notes.txt: Could not detect a supported image format
+
+2 succeeded, 1 failed, 0 skipped.
+```
+
+The command exits non-zero when anything failed.

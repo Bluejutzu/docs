@@ -1,0 +1,198 @@
+---
+title: convert
+description: Turn specific files into another format.
+---
+
+```bash
+bmux convert <files...> --to <formats> [options]
+```
+
+`convert` is the explicit one: you say which files, which format, and what quality. For running a
+whole folder through sensible defaults, use [`optimize`](/bmux/commands/optimize) instead.
+
+## Arguments
+
+<ParamField path="files..." type="string[]" required>
+  What to convert. Takes any mix of files, directories (expanded recursively to the image files
+  inside), and glob patterns — quote patterns so your shell doesn't expand them first.
+
+  ```bash
+  bmux convert photo.jpg --to webp
+  bmux convert photos --to webp
+  bmux convert "photos/**/*.png" --to webp
+  ```
+</ParamField>
+
+<Note>
+  Names containing glob characters are handled literally when the file exists — `holiday (1).png`
+  converts without any escaping.
+</Note>
+
+## Options
+
+<ParamField query="--to" type="string" required>
+  Target format, or several separated by commas: `jpeg`, `png`, `webp`, `avif`. Each input
+  produces one output per format.
+</ParamField>
+
+<ParamField query="--quality" type="number" default="82">
+  Encode quality from 1 to 100. Ignored for PNG, which is always lossless.
+</ParamField>
+
+<ParamField query="--lossless" type="boolean" default="false">
+  Use lossless encoding where the format supports it.
+</ParamField>
+
+<ParamField query="--out" type="string">
+  Directory to write results into. Defaults to writing next to each input file.
+</ParamField>
+
+<ParamField query="--resize-max" type="number">
+  Scale so the longest side is at most this many pixels. Never upscales. Mutually exclusive with
+  `--resize-percent`.
+</ParamField>
+
+<ParamField query="--resize-percent" type="number">
+  Scale to a percentage of the original dimensions. Mutually exclusive with `--resize-max`.
+</ParamField>
+
+<ParamField query="--preserve-metadata" type="boolean" default="false">
+  Keep EXIF/XMP in the output. Metadata is stripped unless you pass this.
+</ParamField>
+
+<ParamField query="--no-auto-rotate" type="boolean">
+  Don't apply EXIF orientation before encoding. By default photos are rotated upright first, so
+  they stay correct once the metadata is gone.
+</ParamField>
+
+<ParamField query="--collision" type="string" default="rename">
+  What to do when the output name already exists: `rename`, `overwrite`, or `skip`.
+</ParamField>
+
+<ParamField query="--manifest" type="string">
+  Write a JSON report of the results to this path.
+</ParamField>
+
+<ParamField query="--dry-run" type="boolean" default="false">
+  Report what would be written without writing it.
+</ParamField>
+
+## Several formats at once
+
+Pass a comma-separated list and each input produces one output per format — useful for shipping a
+modern format with a fallback:
+
+```bash
+bmux convert hero.jpg --to webp,avif --quality 80 --out dist/images
+```
+
+```
+✔ hero.jpg -> dist/images/hero.webp (wrote, 69.7% smaller)
+✔ hero.jpg -> dist/images/hero.avif (wrote, 97.1% smaller)
+
+2 succeeded, 0 failed, 0 skipped.
+```
+
+## Not overwriting things
+
+By default a name collision gets a numeric suffix — `photo.webp`, then `photo (1).webp`. Your
+originals are never touched.
+
+<AccordionGroup>
+  <Accordion title="rename (default)">
+    Adds ` (1)`, ` (2)` and so on. Nothing is lost.
+  </Accordion>
+
+  <Accordion title="overwrite">
+    Replaces an existing output of the same name. Useful for repeatable builds where the output
+    directory is disposable.
+  </Accordion>
+
+  <Accordion title="skip">
+    Leaves the existing file alone and reports the input as skipped. Good for resuming a large
+    batch.
+  </Accordion>
+</AccordionGroup>
+
+## Dry runs
+
+`--dry-run` does the full decode and encode — so the reported sizes are real — but writes nothing:
+
+```bash
+bmux convert photos --to webp --dry-run
+```
+
+```
+✔ photos/a.png -> photos/a.webp (would write, 94.4% smaller)
+```
+
+## Manifests
+
+`--manifest` writes a JSON report, which is what you'd parse in CI:
+
+```bash
+bmux convert photo.jpg --to webp,avif --manifest results.json
+```
+
+```json results.json
+{
+  "files": [
+    {
+      "inputPath": "photo.jpg",
+      "outputPath": "photo.webp",
+      "status": "succeeded",
+      "inputSizeBytes": 11519,
+      "outputSizeBytes": 3494,
+      "sizeReduction": 0.6966750585988367
+    }
+  ]
+}
+```
+
+Each entry in `files` has:
+
+<ResponseField name="inputPath" type="string" required>
+  The file that was read.
+</ResponseField>
+
+<ResponseField name="outputPath" type="string">
+  Where the result was written. Absent when the file failed.
+</ResponseField>
+
+<ResponseField name="status" type="string" required>
+  One of `succeeded`, `failed`, or `skipped`.
+</ResponseField>
+
+<ResponseField name="inputSizeBytes" type="number" required>
+  Size of the original, in bytes.
+</ResponseField>
+
+<ResponseField name="outputSizeBytes" type="number">
+  Size of the result, in bytes. Absent when the file failed.
+</ResponseField>
+
+<ResponseField name="sizeReduction" type="number">
+  Fraction from 0 to 1. Positive means smaller — **negative means the output grew.**
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Why the file failed. Present only on failure.
+</ResponseField>
+
+<Warning>
+  `sizeReduction` can be negative. Re-encoding an already-compressed file, or converting a flat
+  graphic to a lossy format, can make it bigger — the report tells you rather than hiding it.
+</Warning>
+
+## Metadata
+
+EXIF/XMP is removed by default. Orientation is applied to the pixels first, so photos still come
+out upright:
+
+```bash
+bmux convert photo.jpg --to webp --preserve-metadata   # keep EXIF
+bmux convert photo.jpg --to webp --no-auto-rotate      # leave orientation alone
+```
+
+This is the main thing the CLI can do that the browser can't — canvas re-encoding always discards
+metadata as a side effect.

@@ -1,0 +1,71 @@
+---
+title: "GLua Annotation Reference"
+description: "Reference for all annotation tags supported by GLua, using the same ---@tag dialect as the Lua Language Server for compatibility."
+icon: "at"
+sidebarTitle: "Annotations"
+---
+
+The same `---@` dialect the Lua Language Server uses, so annotations you already have work here, and anything you write here keeps working there. Every tag and every type form the parser recognises is listed below.
+
+## Annotation tags
+
+| Tag | Syntax | Purpose |
+| --- | --- | --- |
+| `---@param` | `---@param name type` or `---@param name? type` | Documents a function parameter. Add `?` after the name to mark it optional. |
+| `---@return` | `---@return type` | Documents the return type of a function. |
+| `---@type` | `---@type type` | Overrides the inferred type of a `local` declaration. |
+| `---@class` | `---@class ClassName` | Declares a new class or table shape. |
+| `---@field` | `---@field name type` | Declares a field on a class declared with `---@class`. |
+| `---@deprecated` | `---@deprecated reason` | Marks a function or field as deprecated. The reason shows in hover. |
+
+## Type syntax
+
+Unions, optionals, arrays and generic tables all compose:
+
+| Pattern | Example | Meaning |
+| --- | --- | --- |
+| Union | `Entity \| nil` | Either an `Entity` or `nil`. |
+| Optional parameter | `count?` | The parameter may be omitted. |
+| Array | `Entity[]` | An array (table) of `Entity` values. |
+| Generic table | `table<string, Player>` | A table with string keys and `Player` values. |
+
+## Full example
+
+```lua
+---@class VehicleConfig
+---@field model string
+---@field maxSpeed number
+---@field isAdminOnly boolean
+
+---Create a vehicle config entry.
+---@param model string The model path.
+---@param maxSpeed number Top speed in source units.
+---@param isAdminOnly? boolean Defaults to false.
+---@return VehicleConfig
+local function makeVehicleConfig(model, maxSpeed, isAdminOnly)
+  ---@type VehicleConfig
+  local config = {
+    model = model,
+    maxSpeed = maxSpeed,
+    isAdminOnly = isAdminOnly or false,
+  }
+  return config
+end
+
+---@deprecated Use makeVehicleConfig instead.
+local function oldVehicleConfig() end
+```
+
+<Note>
+  An explicit `---@param` or `---@type` always beats inference. That is the escape hatch for code shapes inference cannot follow — dynamic tables, values built through a helper the server does not know about.
+</Note>
+
+<Warning>
+  `---@type` only takes effect on a `local` declaration, and only for the first name when a statement declares several (`local a, b = ...`). It has no effect on a plain assignment (`x = value`) or a table field (`self.x = value`). See [Casting with `---@type`](/glua/features/typing-your-code#casting-with-type) for examples.
+</Warning>
+
+<Warning>
+  A `---@param` with no type is treated as documentation, not a type. Writing `--- @param ply the player who did it` will not create a type called `the` — the tag is only honoured when the second word is recognisably a type.
+</Warning>
+
+The `deprecated` diagnostic is raised for API that the Garry's Mod wiki marks deprecated. `---@deprecated` on your own functions is currently documentation only; it does not yet produce a diagnostic at call sites.

@@ -1,0 +1,69 @@
+---
+title: "Realm Awareness in GLua"
+description: "GLua assigns every file a realm from its path and narrows it further with if SERVER then blocks, then flags cross-realm API use."
+icon: "server"
+sidebarTitle: "Realms"
+---
+
+Every file has a realm — Client, Server or Shared — decided by its path and narrowed further inside `if SERVER` / `if CLIENT` blocks. Calling an API that does not exist in that realm is reported where you write it.
+
+## How realms are assigned
+
+Path first, filename prefix as a hint.
+
+### Path-based assignment
+
+| Path pattern | Realm |
+| --- | --- |
+| `lua/autorun/client/` | Client |
+| `lua/autorun/server/` | Server |
+| `lua/entities/` | Shared |
+| `lua/weapons/` | Shared |
+| `lua/vgui/` | Client |
+| `lua/autorun/` | Shared |
+
+### Filename prefix conventions
+
+| Prefix | Realm |
+| --- | --- |
+| `cl_` | Client |
+| `sv_` | Server |
+
+The prefix is informational — the directory decides, because plenty of projects break the convention.
+
+### Narrowing with conditionals
+
+Inside `if SERVER then`, everything on that branch is treated as serverside. `if CLIENT then` does the same for the client.
+
+```lua
+if SERVER then
+    -- Everything here is treated as serverside
+    Player:Kick("Reason") -- Valid in this branch
+end
+```
+
+## What it catches
+
+### Cross-realm API misuse
+
+A serverside-only function called from a clientside file is reported where the call is written:
+
+```lua
+-- File: lua/autorun/client/my_addon.lua
+local ply = LocalPlayer()
+ply:Kick("Reason") -- Error: Kick is not available on the client
+```
+
+### Completion filtering
+
+Serverside-only functions are hidden from completion in a clientside file, and the reverse. `Player:Kick` will not turn up in a `cl_` file or under `lua/autorun/client/`.
+
+## Realm certainty
+
+A directory realm is **certain** — `lua/autorun/server/` is serverside, and no filename prefix changes that.
+
+A filename prefix (`cl_`, `sv_`) is **informational**. It sets the initial guess but never overrides a conflicting directory, which is what stops false positives when a `cl_` file is included from a shared context.
+
+<Note>
+  A `cl_` file `include`d serverside from a shared file looks clientside by its path, and there is no way to tell otherwise. If you share a prefixed file on purpose, put `---@realm shared` at the top of it.
+</Note>

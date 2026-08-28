@@ -1,0 +1,148 @@
+---
+title: "Install GLua for VS Code"
+description: "Install the GLua VS Code extension from a GitHub release or build it from source with pnpm in three steps."
+icon: "download"
+sidebarTitle: "Installation"
+---
+
+Same build, three ways to get it. Pick whichever your editor installs from.
+
+<CardGroup cols={3}>
+  <Card title="GitHub Releases" icon="github" href="https://github.com/Bluejutzu/glua-lsp/releases/latest">
+    **Available now.** Download the `.vsix` and install it in any editor.
+  </Card>
+
+  <Card title="Open VSX" icon="box" href="https://open-vsx.org/extension/blight/glua-gmod">
+    For **Cursor**, VSCodium, Gitpod and Theia.
+  </Card>
+
+  <Card title="VS Code Marketplace" icon="microsoft" href="https://marketplace.visualstudio.com/items?itemName=blight.glua-gmod">
+    For **VS Code**.
+  </Card>
+</CardGroup>
+
+<Note>
+  Registry publishing is wired into the release pipeline but the listings may not be live yet. If a link above 404s, that registry has not been published to — use the `.vsix` from [GitHub Releases](https://github.com/Bluejutzu/glua-lsp/releases/latest) in the meantime; it is the same artefact.
+</Note>
+
+## Quick install
+
+<CodeGroup>
+
+```bash VS Code
+code --install-extension blight.glua-gmod
+```
+
+```bash Cursor
+cursor --install-extension blight.glua-gmod
+```
+
+```bash From a .vsix
+code --install-extension glua-gmod-<version>.vsix 
+```
+
+</CodeGroup>
+
+## From a release
+
+<Steps>
+  <Step title="Download the VSIX">
+    Grab `glua-gmod-<version>.vsix` from the [latest release](https://github.com/Bluejutzu/glua-lsp/releases/latest).
+  </Step>
+  <Step title="Install it">
+    Run this from the folder you saved the file in.
+
+    <CodeGroup>
+
+    ```bash VS Code
+    code --install-extension glua-gmod-<version>.vsix
+    ```
+
+    ```bash Cursor
+    cursor --install-extension glua-gmod-<version>.vsix
+    ```
+
+    </CodeGroup>
+
+    Or from inside the editor: **Extensions** → the `···` menu → **Install from VSIX…**
+  </Step>
+  <Step title="Open a GLua file">
+    The extension activates when you open a `.lua` file in a Garry's Mod workspace.
+  </Step>
+</Steps>
+
+<Warning>
+  Cursor, VS Code and VSCodium keep separate extension directories. Install into each editor you use.
+</Warning>
+
+### Updating
+
+A `.vsix` install does not auto-update. Download the newer file and run the same install command — it replaces the previous version in place.
+
+To hear about new versions, watch the repository: **Watch** → **Custom** → **Releases**.
+
+### Unreleased builds
+
+Every push to `main` builds and attaches a `.vsix` to its CI run, so you can pick up a fix before it is tagged. Open the [latest CI run](https://github.com/Bluejutzu/glua-lsp/actions/workflows/ci.yml), scroll to **Artifacts**, and download `glua-lsp-vsix-<sha>`. And follow the instructions at [Quick Install](https://glua.bluejutzu.dev/installation#quick-install).
+
+<Note>
+  GitHub wraps workflow artifacts in a `.zip`. Unzip it to get the `.vsix` inside.
+</Note>
+
+## From source
+
+<Steps>
+  <Step title="Clone and install dependencies">
+    Clone the repository and install packages with pnpm.
+
+    ```bash
+    git clone https://github.com/Bluejutzu/glua-lsp.git
+    cd glua-lsp
+    pnpm install
+    ```
+  </Step>
+  <Step title="Build and package">
+    Compile the extension and produce a `.vsix`.
+
+    ```bash
+    pnpm run build
+    pnpm run package
+    ```
+
+    That writes `packages/glua-lsp/glua-gmod-<version>.vsix`.
+  </Step>
+  <Step title="Run or install">
+    Press **F5** to launch the extension in a new Extension Development Host window, or install the package you just built.
+
+    ```bash
+    code --install-extension packages/glua-lsp/glua-gmod-<version>.vsix
+    ```
+  </Step>
+</Steps>
+
+## Verify the installation
+
+Open a `.lua` file inside a Garry's Mod addon folder. The status bar shows a realm — `GLua · Server`, `GLua · Client` or `GLua · Shared` — once the language server has attached and started indexing.
+
+<Warning>
+  `Plain Lua` in the status bar means the workspace did not look like a Garry's Mod project. Click the status bar item to switch, or set `glua.activation` to `always`.
+</Warning>
+
+## Setting it as your formatter
+
+Register it as the default formatter for the `glua` language in your user or workspace `settings.json`:
+
+```json
+{
+  "[glua]": {
+    "editor.defaultFormatter": "blight.glua-gmod",
+    "editor.formatOnSave": true
+  }
+}
+```
+
+## Requirements
+
+- VS Code 1.85 or newer
+- No network connection required at runtime (the full wiki dataset is bundled)
+- No additional dependencies or external tools needed

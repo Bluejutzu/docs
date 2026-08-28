@@ -1,0 +1,70 @@
+---
+title: bmux CLI
+description: Convert and compress images locally, from the command line.
+---
+
+bmux converts and compresses images without uploading them anywhere. The
+[browser app](https://bmux.bluejutzu.dev) does the work in your own tab; the CLI does the same job
+from a script, with no server involved either way.
+
+<Note>
+  The CLI uses [sharp](https://sharp.pixelplumbing.com/), so unlike the browser it can write every
+  supported format and can keep EXIF metadata when you ask it to.
+</Note>
+
+## Quickstart
+
+<Steps>
+  <Step title="Install">
+    See [Installation](/bmux/installation) — the CLI is built from source for now.
+  </Step>
+
+  <Step title="Convert something">
+    ```bash
+    bmux convert photo.jpg --to webp --quality 80
+    ```
+  </Step>
+
+  <Step title="Check what you got">
+    ```bash
+    bmux inspect photo.webp
+    ```
+  </Step>
+</Steps>
+
+## The three commands
+
+<CardGroup cols={3}>
+  <Card title="convert" icon="right-left" href="/bmux/commands/convert">
+    Turn specific files into another format, with control over quality and size.
+  </Card>
+
+  <Card title="optimize" icon="wand-magic-sparkles" href="/bmux/commands/optimize">
+    Run a whole directory through a preset without picking settings yourself.
+  </Card>
+
+  <Card title="inspect" icon="magnifying-glass" href="/bmux/commands/inspect">
+    Report what a file actually is, read from its contents rather than its name.
+  </Card>
+</CardGroup>
+
+## Things that hold true everywhere
+
+- **Originals are never overwritten.** Colliding output names get a numeric suffix unless you
+  choose otherwise with `--collision`.
+- **Metadata is stripped by default.** EXIF/XMP is removed unless you pass `--preserve-metadata`.
+  Photos are still auto-rotated upright first.
+- **A failed file doesn't stop the rest.** The batch finishes, the failures are listed, and the
+  exit code is non-zero.
+- **Nothing is uploaded.** There is no server and no account. `--dry-run` will show you exactly
+  what would be written before anything is.
+
+## Colour output
+
+Colour is used for status only — green for a saving, amber for a file that grew, red for a failure.
+It turns itself off when output isn't a terminal, and it honours
+[`NO_COLOR`](https://no-color.org):
+
+```bash
+NO_COLOR=1 bmux convert photo.jpg --to webp
+```

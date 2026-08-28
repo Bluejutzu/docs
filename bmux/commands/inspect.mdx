@@ -1,0 +1,144 @@
+---
+title: inspect
+description: Report what a file actually is.
+---
+
+```bash
+bmux inspect <file> [--json]
+```
+
+`inspect` reads a file's **contents** to work out what it is, rather than trusting the extension.
+It writes nothing and changes nothing.
+
+```bash
+bmux inspect photo.jpg
+```
+
+```
+photo.jpg
+  size: 11519 bytes
+  detected type: image/jpeg
+  dimensions: 1600x1200
+  format: jpeg
+  alpha channel: false
+  color space: srgb
+  EXIF present: false
+```
+
+## Arguments
+
+<ParamField path="file" type="string" required>
+  The file to inspect. Only one at a time.
+</ParamField>
+
+## Options
+
+<ParamField query="--json" type="boolean" default="false">
+  Emit machine-readable JSON instead of the human summary.
+</ParamField>
+
+## JSON output
+
+```bash
+bmux inspect photo.jpg --json
+```
+
+```json
+{
+  "path": "photo.jpg",
+  "sizeBytes": 11519,
+  "detectedMimeType": "image/jpeg",
+  "detectedExtension": "jpg",
+  "image": {
+    "format": "jpeg",
+    "width": 1600,
+    "height": 1200,
+    "hasAlpha": false,
+    "colorSpace": "srgb",
+    "hasExif": false
+  }
+}
+```
+
+<ResponseField name="path" type="string" required>
+  The path you passed in, unchanged.
+</ResponseField>
+
+<ResponseField name="sizeBytes" type="number" required>
+  Size on disk, in bytes.
+</ResponseField>
+
+<ResponseField name="detectedMimeType" type="string">
+  Read from the file's magic bytes. Absent if nothing recognisable was found.
+</ResponseField>
+
+<ResponseField name="detectedExtension" type="string">
+  The canonical extension for that type, which may differ from the filename.
+</ResponseField>
+
+<ResponseField name="image" type="object">
+  Present only if the file could be decoded as an image.
+
+  <Expandable title="image">
+    <ResponseField name="format" type="string">
+      The decoder's name for the format, e.g. `jpeg`.
+    </ResponseField>
+
+    <ResponseField name="width" type="number">
+      Width in pixels.
+    </ResponseField>
+
+    <ResponseField name="height" type="number">
+      Height in pixels.
+    </ResponseField>
+
+    <ResponseField name="hasAlpha" type="boolean">
+      Whether the image carries an alpha channel.
+    </ResponseField>
+
+    <ResponseField name="colorSpace" type="string">
+      Colour space, e.g. `srgb`.
+    </ResponseField>
+
+    <ResponseField name="hasExif" type="boolean">
+      Whether EXIF is present — not what it contains.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Spotting a mislabelled file
+
+Because detection ignores the extension, a renamed file gives itself away — the detected type won't
+match the name:
+
+```bash
+bmux inspect screenshot.jpg --json
+```
+
+```json
+{
+  "path": "screenshot.jpg",
+  "detectedMimeType": "image/png",
+  "detectedExtension": "png"
+}
+```
+
+That file is a PNG regardless of what it's called, and bmux will treat it as one.
+
+## Using it in a script
+
+`--json` pairs with [jq](https://jqlang.github.io/jq/) for quick checks:
+
+```bash
+# every image wider than 2000px
+for f in photos/*; do
+  w=$(bmux inspect "$f" --json | jq '.image.width // 0')
+  [ "$w" -gt 2000 ] && echo "$f is ${w}px wide"
+done
+```
+
+<Note>
+  `inspect` exits non-zero if the file can't be read at all. A file that reads fine but isn't a
+  decodable image still exits `0` — `image` is simply omitted, which is a result rather than an
+  error.
+</Note>

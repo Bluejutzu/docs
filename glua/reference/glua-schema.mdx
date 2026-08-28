@@ -1,0 +1,248 @@
+---
+title: "$schema Reference for .glua.json"
+description: "Every property glua.schema.json accepts, with its type, default, and what reads it — the schema behind .glua.json's IntelliSense and validation."
+icon: "list-tree"
+sidebarTitle: "glua.schema.json"
+---
+
+`.glua.json` is validated against
+[glua.bluejutzu.dev/schemas/glua.schema.json](https://glua.bluejutzu.dev/schemas/glua.schema.json),
+the same schema `glua init` and **GLua: Create Linter Config File** point
+`$schema` at. This page documents every property it accepts. For a shorter,
+example-first walkthrough see [Config Files](/glua/configuration/config-files).
+
+<Info>
+  The schema sets `additionalProperties: false` at every level shown below, so
+  a typo'd key is flagged in your editor rather than silently ignored.
+</Info>
+
+## Top level
+
+<ParamField path="$schema" type="string">
+  URL of the JSON schema for this file. Written automatically by `glua init` and the VS Code commands.
+</ParamField>
+
+<ParamField path="globals" type="string[]">
+  Globals provided by addons outside this workspace, e.g. `["ULib", "ulx", "pac"]`. Declaring them stops [`undefined-global`](/glua/reference/rules#undefined-global) firing on every use.
+</ParamField>
+
+<ParamField path="diagnostics" type="Diagnostics">
+  Per-rule severities — see [below](#diagnostics). Rules can also be suppressed inline with [`-- glua-ignore <rule>`](/glua/configuration/suppressions).
+</ParamField>
+
+<ParamField path="format" type="object">
+  A **subset** of [`.gluafmtrc.json`](/glua/reference/gluafmtrc-schema)'s options — see [below](#format). A `.gluafmtrc.json` file, if present, wins over this.
+</ParamField>
+
+<ParamField path="workspace" type="Workspace">
+  Indexing limits and dependency source trees — see [below](#workspace).
+</ParamField>
+
+<ParamField path="completion" type="Completion">
+  Completion behaviour — see [below](#completion).
+</ParamField>
+
+<ParamField path="inlayHints" type="InlayHints">
+  Inline hints shown alongside your code — see [below](#inlayhints).
+</ParamField>
+
+<ParamField path="hover" type="Hover">
+  Hover documentation behaviour — see [below](#hover).
+</ParamField>
+
+<ParamField path="overrides" type="Override[]">
+  Per-path rule overrides, applied in order; later entries win — see [below](#overrides).
+</ParamField>
+
+```json
+{
+  "$schema": "https://glua.bluejutzu.dev/schemas/glua.schema.json",
+  "globals": ["ULib", "ulx"],
+  "diagnostics": {
+    "unusedLocal": "warning",
+    "realmViolation": "error"
+  },
+  "overrides": [
+    {
+      "files": ["lua/vendor/**"],
+      "diagnostics": { "unusedLocal": "off" }
+    }
+  ]
+}
+```
+
+## `format`
+
+Only these keys have any effect here: `maxLineWidth`, `quoteStyle`,
+`operatorStyle`, `commentStyle`, `spaceInsideParens`, `keepSingleLineBlocks`,
+`maxBlankLines`, `semicolons`. The schema does not reject the rest of
+[`.gluafmtrc.json`](/glua/reference/gluafmtrc-schema)'s keys here, but
+`useTabs`, `indentSize` and `endOfLine` are silently ignored when written
+inside `.glua.json` — indentation and line endings come from your editor (or
+`.editorconfig`) instead. Put those two in an actual `.gluafmtrc.json` file if
+you need to pin them for the whole team.
+
+```json
+{
+  "format": {
+    "maxLineWidth": 100,
+    "quoteStyle": "double"
+  }
+}
+```
+
+## `diagnostics`
+
+Every property accepts a **severity** — `"error"`, `"warning"`, `"information"`,
+`"hint"` or `"off"` — except `enable` and `scope`, which are about how the
+server runs rather than any one rule. See the
+[rule reference](/glua/reference/rules) for what each rule actually catches; the
+settings key here is the same one shown under each rule there.
+
+<ParamField path="enable" type="boolean" default="true">
+  Turns every diagnostic on or off at once.
+</ParamField>
+
+<ParamField path="undefinedGlobal" type="severity" default="warning">
+  [`undefined-global`](/glua/reference/rules#undefined-global)
+</ParamField>
+
+<ParamField path="realmViolation" type="severity" default="warning">
+  [`realm-violation`](/glua/reference/rules#realm-violation)
+</ParamField>
+
+<ParamField path="unusedLocal" type="severity" default="hint">
+  [`unused-local`](/glua/reference/rules#unused-local)
+</ParamField>
+
+<ParamField path="deprecated" type="severity" default="warning">
+  [`deprecated`](/glua/reference/rules#deprecated)
+</ParamField>
+
+<ParamField path="argumentCount" type="severity" default="warning">
+  [`argument-count`](/glua/reference/rules#argument-count)
+</ParamField>
+
+<ParamField path="argumentType" type="severity" default="warning">
+  [`argument-type`](/glua/reference/rules#argument-type)
+</ParamField>
+
+<ParamField path="unknownHook" type="severity" default="information">
+  [`unknown-hook`](/glua/reference/rules#unknown-hook)
+</ParamField>
+
+<ParamField path="netMessage" type="severity" default="warning">
+  [`net-unregistered`](/glua/reference/rules#net-unregistered), [`net-never-dispatched`](/glua/reference/rules#net-never-dispatched), [`net-never-received`](/glua/reference/rules#net-never-received), [`net-never-sent`](/glua/reference/rules#net-never-sent)
+</ParamField>
+
+<ParamField path="netReadWriteMismatch" type="severity" default="warning">
+  [`net-payload-mismatch`](/glua/reference/rules#net-payload-mismatch)
+</ParamField>
+
+<ParamField path="missingAddCSLuaFile" type="severity" default="warning">
+  [`missing-addcsluafile`](/glua/reference/rules#missing-addcsluafile)
+</ParamField>
+
+<ParamField path="globalWrite" type="severity" default="off">
+  [`global-write`](/glua/reference/rules#global-write)
+</ParamField>
+
+<ParamField path="duplicateIdentifier" type="severity" default="warning">
+  [`duplicate-hook-identifier`](/glua/reference/rules#duplicate-hook-identifier), [`duplicate-timer-name`](/glua/reference/rules#duplicate-timer-name)
+</ParamField>
+
+<ParamField path="missingAsset" type="severity" default="off">
+  [`missing-asset`](/glua/reference/rules#missing-asset). Needs [`workspace.gamePath`](/glua/features/assets) — a VS Code setting, not a `.glua.json` property.
+</ParamField>
+
+<ParamField path="perfHotPath" type="severity" default="warning">
+  [`perf-hot-path`](/glua/reference/rules#perf-hot-path)
+</ParamField>
+
+<ParamField path="unusedFunction" type="severity" default="off">
+  [`unused-function`](/glua/reference/rules#unused-function)
+</ParamField>
+
+<ParamField path="unusedSuppression" type="severity" default="hint">
+  [`unused-suppression`](/glua/reference/rules#unused-suppression)
+</ParamField>
+
+<ParamField path="scope" type='"open" | "workspace"' default="open">
+  Whether to report problems only in open files, or in every indexed file.
+</ParamField>
+
+<Warning>
+  Use the settings key, not the diagnostic code, here. `"net-payload-mismatch": "error"` is not a valid entry — the key is `netReadWriteMismatch`. Codes are for the Problems panel and for `-- glua-ignore`; see [Suppressions](/glua/configuration/suppressions) for why the two names differ.
+</Warning>
+
+## `workspace`
+
+<ParamField path="maxFiles" type="integer, minimum 1">
+  Maximum Lua files to index. The CLI's own `--max-files` flag, when given, wins over this.
+</ParamField>
+
+<ParamField path="exclude" type="string[]">
+  Directory names to skip while indexing.
+</ParamField>
+
+<ParamField path="libraries" type="string[]">
+  Source trees for frameworks this project uses but does not contain (ULib, DarkRP, Wiremod). Indexed for what they define and never reported on. Absolute, or relative to this file. See [Frameworks and Libraries](/glua/configuration/frameworks).
+</ParamField>
+
+<Note>
+  `workspace.gamePath` completes and checks asset paths against a full Garry's Mod install. It is not part of this schema — set it as the VS Code setting `glua.workspace.gamePath` instead, described on the [Asset Paths](/glua/features/assets) page.
+</Note>
+
+## `completion`
+
+<ParamField path="callSnippets" type="boolean" default="true">
+  Insert parentheses and tab stops for parameters when completing a function.
+</ParamField>
+
+<ParamField path="filterByRealm" type="boolean" default="true">
+  Hide API members that cannot exist in the current file's [realm](/glua/features/realms).
+</ParamField>
+
+## `inlayHints`
+
+<ParamField path="parameterNames" type="boolean" default="true">
+  Show parameter names inline at call sites of known API functions.
+</ParamField>
+
+<ParamField path="realm" type="boolean" default="false">
+  Show the inferred [realm](/glua/features/realms) at the top of each file.
+</ParamField>
+
+## `hover`
+
+<ParamField path="wikiLinks" type="boolean" default="true">
+  Include a link to the Garry's Mod wiki in hover documentation.
+</ParamField>
+
+## `overrides`
+
+An array of objects, applied in order — later entries win when two overrides
+match the same file.
+
+<ParamField path="files" type="string[]" required>
+  Glob patterns relative to this file's directory, e.g. `lua/vendor/**`. At least one entry.
+</ParamField>
+
+<ParamField path="diagnostics" type="Diagnostics">
+  Severities to apply to matching files, same shape as the top-level `diagnostics` object — see [above](#diagnostics).
+</ParamField>
+
+<ParamField path="globals" type="string[]">
+  Extra globals available only in matching files.
+</ParamField>
+
+```json
+{
+  "overrides": [
+    {
+      "files": ["lua/vendor/**", "lua/thirdparty/**"],
+      "diagnostics": { "undefinedGlobal": "off", "unusedLocal": "off" }
+    }
+  ]
+}
+```

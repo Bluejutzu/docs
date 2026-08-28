@@ -1,0 +1,83 @@
+---
+title: "GLua for Garry's Mod: GMod Lua IDE Support"
+sidebarTitle: "Overview"
+description: "GLua adds IntelliSense, realm checks, net message analysis, and a formatter to VS Code for Garry's Mod Lua development."
+---
+
+A VS Code extension for GMod Lua. The Garry's Mod wiki is bundled — 5,586 entries — so completion, type tracking and diagnostics work offline, and cover the things generic Lua tooling has no idea about: server, client and shared realms, net message payloads, and hook signatures.
+
+<Info>
+  This is an unofficial, community-maintained project. It is not affiliated with, endorsed by, or supported by Facepunch Studios.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/glua/installation">
+    Install from a `.vsix`, from a registry, or build from source.
+  </Card>
+
+  <Card title="Quickstart" icon="play" href="/glua/quickstart">
+    A five-minute tour of completion, realms and net messages.
+  </Card>
+
+  <Card title="Configuration" icon="gear" href="/glua/configuration/overview">
+    Committed config files, editor settings, and inline suppressions.
+  </Card>
+
+  <Card title="Rules Reference" icon="book-open" href="/glua/reference/rules">
+    Every diagnostic the linter reports, what it catches, and why.
+  </Card>
+</CardGroup>
+
+## What it does
+
+<AccordionGroup>
+  <Accordion title="IntelliSense and type tracking" icon="sparkles">
+    Types propagate through calls, string literals, loops and metatables, so the completion list on any variable is the methods that variable actually has. The dataset behind it: 331 globals, 1,257 library functions, 2,376 class methods, 1,069 panel methods, 100 enums and 72 structures.
+  </Accordion>
+
+  <Accordion title="Realm awareness" icon="globe">
+    A file's realm is read from its path and narrowed inside `if SERVER then` blocks. Calling `Player:Kick` from a clientside file is reported where you write it, not left for someone to find in-game.
+  </Accordion>
+
+  <Accordion title="Net message analysis" icon="server">
+    Each `net.Start` is paired with its `net.Receive` across files and their write/read sequences compared. Writing an `Entity` and reading a `UInt` on the other end is caught before the message runs.
+  </Accordion>
+
+  <Accordion title="Hook intelligence" icon="zap">
+    551 hook signatures. Names complete, typos are flagged with a quick-fix suggestion, and callback parameters take their types from the signature without you annotating anything.
+  </Accordion>
+
+  <Accordion title="Formatter" icon="align-left">
+    Reprints from the syntax tree. It refuses to touch a file that does not parse, never drops a comment, and leaves idiomatic one-liners like `if not IsValid(ent) then return end` alone. Configured with `.gluafmtrc.json`, `.editorconfig` or `.prettierrc`.
+  </Accordion>
+</AccordionGroup>
+
+## Performance
+
+Measured on a 932-file, 232,000-line gamemode:
+
+| Metric | Result |
+| --- | --- |
+| Cold index | 4.8 s |
+| Retained heap | 59 MB |
+| Re-analyse 3,200-line file | 31 ms |
+| Member completion | 1.2 ms |
+| Global completion | 4.1 ms |
+| Diagnostics | 3.5 ms |
+
+## Activation
+
+GLua does not claim every `.lua` file on your machine. It attaches to Garry's Mod workspaces, and to anything else only when you ask it to. The status bar shows the current mode:
+
+- `GLua · Server`
+- `GLua · Client`
+- `GLua · Shared`
+- `Plain Lua`
+
+If you see `Plain Lua` in a GMod project, click the status bar item or set `glua.activation` to `always`.
+
+## A note on how this was built
+
+<Note>
+  AI assistance was used throughout this project, from the parser to these docs. It isn't meant to be a big, load-bearing tool — it's a project built to understand how language servers and CLIs actually work, from the inside.
+</Note>

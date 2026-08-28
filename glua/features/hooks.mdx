@@ -1,0 +1,108 @@
+---
+title: "Hook Intelligence and Callback Typing"
+description: "GLua completes hook names, detects typos with quick fixes, types callback parameters from wiki signatures, and generates ENTITY stubs."
+icon: "anchor"
+sidebarTitle: "Hooks"
+---
+
+Hook names complete from the wiki, typos are flagged with a quick fix, callback parameters take their type from the signature, and `ENT`/`SWEP`/`PANEL` stubs write themselves.
+
+## Hook name completion
+
+Inside a `hook.Add("` string, completion offers the 551 hooks in the bundled wiki dataset — plus any custom hook your workspace fires with `hook.Run`.
+
+```lua
+hook.Add("PlayerSay", "MyAddon", function(sender, text, teamChat)
+    -- sender is typed as Player, text as string, teamChat as boolean
+end)
+```
+
+## Typo detection
+
+A hook name that is neither documented nor fired anywhere in the workspace is flagged, with the closest known name offered as a quick fix.
+
+```lua
+hook.Add("PlayerSpawned", "MyAddon", function(ply)
+    -- Error: "PlayerSpawned" is not a known hook
+    -- Quick fix: Did you mean "PlayerSpawn"?
+end)
+```
+
+## Typed callback parameters
+
+Callback parameters take their type from the hook's wiki signature. No annotation required.
+
+```lua
+hook.Add("PlayerSay", "ChatFilter", function(sender, text, teamChat)
+    sender:Kick("Spam") -- sender is typed as Player
+    return ""            -- return type is inferred from hook signature
+end)
+```
+
+## Hooks of your own
+
+A hook you invented is documented nowhere, so its `hook.Run` call sites are the only description of it that exists. Those are read as its signature, and the callbacks you register for it are typed from them.
+
+```lua
+-- somewhere in your addon
+hook.Run("MyAddon.TurretPlaced", ply, turret)
+
+-- somewhere else
+hook.Add("MyAddon.TurretPlaced", "log", function(ply, turret)
+    ply:Nick()      -- Player, because that is what the call site passes
+    turret:Remove()
+end)
+```
+
+Where call sites disagree about a position, it stays `any` rather than picking one. A site passing `nil` is ignored for the same reason — it says nothing about what the parameter is for.
+
+Declaring more parameters than anything passes is reported, since those extras are always `nil`:
+
+```lua
+hook.Run("MyAddon.Ping", count)
+
+hook.Add("MyAddon.Ping", "x", function(count, reason)
+    -- reason is always nil; nothing passes a second argument
+end)
+```
+
+## ENT / SWEP / PANEL stubs
+
+The full hook table of a scripted entity, weapon or panel can be generated in one completion.
+
+### Scripted entity stub
+
+Typing `function ENT:` opens a completion for the entity hook table. Accept it and the server inserts a stub of the common hooks:
+
+```lua
+ENT.Type = "anim"
+ENT.Base = "base_anim"
+
+function ENT:Initialize()
+    self:SetModel("models/props_c17/oildrum001.mdl")
+end
+
+function ENT:Think()
+end
+
+function ENT:Use(activator, caller)
+    -- activator is typed as Player, caller as Entity
+end
+```
+
+The same works for `SWEP` and `PANEL`.
+
+## gameevent.Listen
+
+`gameevent.Listen` counts as a hook source. Events registered this way appear in completion and are checked by the typo rule.
+
+```lua
+gameevent.Listen("player_connect")
+hook.Add("player_connect", "LogJoins", function(data)
+    -- data is typed from the gameevent signature
+end)
+```
+
+<Tip>
+  Ctrl\+. on an unknown hook name pulls up the closest documented match. `PlayerDeath` vs `PlayerDeathThink` is the usual example.
+</Tip>
