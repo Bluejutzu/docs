@@ -5,7 +5,7 @@ icon: "download"
 ---
 
 <Warning>
-  bmux isn't on npm yet, so `npm install -g bmux` won't work. Build it from source with the steps
+  bmux isn't on npm yet, so `npm install -g @bmux/cli` won't work. Build it from source with the steps
   below — it takes about a minute.
 </Warning>
 
@@ -41,7 +41,7 @@ Linux, macOS and Windows. There's nothing to compile.
 
   <Step title="Put bmux on your PATH">
     ```bash
-    pnpm --filter bmux exec pnpm link --global
+    pnpm --filter @bmux/cli exec pnpm link --global
     ```
 
     This symlinks the package, so it keeps pointing at your checkout — rebuild and the `bmux`

@@ -35,20 +35,26 @@ it, so there's a one-time bootstrap: publish the first version by hand, then han
 every release after.
 
 <Steps>
+  <Step title="Create the @bmux org">
+    Both packages publish under the `@bmux` scope — `bmux` alone is blocked by npm's anti-squat
+    check (too close to existing names like `bun` and `flux`), and a new scope has to exist as an
+    org before npm will accept a publish under it. Create it for free at
+    [npmjs.com/org/create](https://www.npmjs.com/org/create).
+  </Step>
+
   <Step title="Publish the first version by hand">
-    From a clean checkout, with npm CLI logged in to an account that can publish under the `bmux`
-    name and the `@bmux` scope:
+    From a clean checkout, logged in to an account that's a member of the `@bmux` org:
 
     ```bash
     pnpm install
     pnpm build
     npm login
     pnpm --filter @bmux/core publish --access public --no-git-checks
-    pnpm --filter bmux publish --access public --no-git-checks
+    pnpm --filter @bmux/cli publish --access public --no-git-checks
     ```
 
-    `core` goes first — `bmux` depends on it via `workspace:*`, and pnpm rewrites that to the exact
-    version being published, so `core` has to exist on the registry before `bmux` does.
+    `core` goes first — the CLI depends on it via `workspace:*`, and pnpm rewrites that to the exact
+    version being published, so `core` has to exist on the registry before the CLI does.
 
     <Note>
       No `--provenance` here — provenance attestations need a supported CI environment's OIDC
@@ -58,7 +64,7 @@ every release after.
   </Step>
 
   <Step title="Configure the trusted publisher">
-    For **each** package (`@bmux/core` and `bmux`), on npmjs.com: package page → **Settings** →
+    For **each** package (`@bmux/core` and `@bmux/cli`), on npmjs.com: package page → **Settings** →
     **Trusted Publisher** → **GitHub Actions**, and fill in:
 
     | Field | Value |
