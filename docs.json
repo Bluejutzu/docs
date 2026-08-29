@@ -31,10 +31,13 @@
             "groups": [
               {
                 "group": "Getting started",
-                "pages": ["bmux/index", "bmux/installation"]
+                "pages": [
+                  "bmux/index",
+                  "bmux/installation"
+                ]
               },
               {
-                "group": "Commands",
+                "group": "Files",
                 "pages": [
                   "bmux/commands/convert",
                   "bmux/commands/optimize",
@@ -42,8 +45,18 @@
                 ]
               },
               {
+                "group": "Audio Tagging",
+                "pages": [
+                  "bmux/commands/tag",
+                  "bmux/commands/batch",
+                  "bmux/commands/cover"
+                ]
+              },
+              {
                 "group": "Changelog",
-                "pages": ["bmux/changelog"]
+                "pages": [
+                  "bmux/changelog"
+                ]
               }
             ]
           },
@@ -52,7 +65,9 @@
             "groups": [
               {
                 "group": "Maintaining",
-                "pages": ["bmux/contributing/publishing"]
+                "pages": [
+                  "bmux/contributing/publishing"
+                ]
               }
             ]
           }
@@ -67,7 +82,11 @@
             "groups": [
               {
                 "group": "Get Started",
-                "pages": ["glua/index", "glua/installation", "glua/quickstart"]
+                "pages": [
+                  "glua/index",
+                  "glua/installation",
+                  "glua/quickstart"
+                ]
               },
               {
                 "group": "Features",
@@ -84,7 +103,9 @@
               },
               {
                 "group": "Formatting",
-                "pages": ["glua/features/formatter"]
+                "pages": [
+                  "glua/features/formatter"
+                ]
               },
               {
                 "group": "Configuration",
@@ -97,7 +118,10 @@
               },
               {
                 "group": "Changelog",
-                "pages": ["glua/changelog", "glua/cli-changelog"]
+                "pages": [
+                  "glua/changelog",
+                  "glua/cli-changelog"
+                ]
               }
             ]
           },
@@ -106,7 +130,10 @@
             "groups": [
               {
                 "group": "Language",
-                "pages": ["glua/reference/rules", "glua/reference/annotations"]
+                "pages": [
+                  "glua/reference/rules",
+                  "glua/reference/annotations"
+                ]
               },
               {
                 "group": "Config Schemas",
@@ -132,11 +159,16 @@
             "groups": [
               {
                 "group": "Internals",
-                "pages": ["glua/contributing/architecture", "glua/contributing/development"]
+                "pages": [
+                  "glua/contributing/architecture",
+                  "glua/contributing/development"
+                ]
               },
               {
                 "group": "Maintaining",
-                "pages": ["glua/contributing/publishing"]
+                "pages": [
+                  "glua/contributing/publishing"
+                ]
               }
             ]
           }
@@ -162,7 +194,11 @@
     "prompt": "Search bluejutzu docs"
   },
   "contextual": {
-    "options": ["copy", "view", "download-pdf"],
+    "options": [
+      "copy",
+      "view",
+      "download-pdf"
+    ],
     "display": "header"
   },
   "styling": {
