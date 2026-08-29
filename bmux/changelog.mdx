@@ -11,17 +11,12 @@ Each GitHub release lists every commit. This page covers what actually changed f
 `bmux` and `@bmux/core` release together as one version — see
 [Publishing](/bmux/contributing/publishing) for why.
 
-<Update label="Unreleased">
-- `bmux convert` turns files, folders or globs into JPEG, PNG, WebP or AVIF, with quality, resizing,
-  and several output formats at once
-- `bmux optimize` runs a whole folder through a web, social or email preset
-- `bmux inspect` reports what a file actually is, read from its contents rather than its name
-- File type is detected from content, so a mislabelled `.jpg` is still handled correctly
-- Originals are never overwritten — colliding names are renamed unless you pass `--collision`
-- Metadata is stripped by default, with photos rotated upright first; `--preserve-metadata` keeps it
-- `--dry-run` shows exactly what would be written, and `--manifest` writes a JSON report for CI
-- A failed file doesn't cancel the rest of the batch, and the command exits non-zero
-- Colour is used for status only, and honours [`NO_COLOR`](https://no-color.org)
+<Update label="0.1.1">
+No user-facing changes — fixes to the npm release workflow only (trusted publishing via OIDC
+wasn't actually authenticating; releases now publish successfully).
+</Update>
+
+<Update label="0.1.0">
 - `bmux tag` writes title, artist, album, track, year, and cover art on one mp3/flac/m4a file, so
   Spotify's Local Files feature shows it correctly
 - `bmux batch` applies the same artist/album/year/cover art to every audio file in a directory
@@ -33,7 +28,21 @@ Each GitHub release lists every commit. This page covers what actually changed f
 - `--musicbrainz` on `bmux batch` looks up missing metadata and cover art on MusicBrainz — the
   one thing in bmux that contacts a third party, off by default with a warning when enabled
 - The browser app gained a **Spotify Tracks** tab alongside the existing image workbench, with
-  drag-and-drop tagging, a live cover-art preview, and export as downloads or a ZIP — audio
-  tagging still runs entirely in your own tab, with the same MusicBrainz lookup proxied through
+  drag-and-drop tagging, ranked MusicBrainz search results, album/tracklist browsing, batch
+  matching across selected files, a live cover-art preview, and export as downloads or a ZIP —
+  audio tagging still runs entirely in your own tab, with MusicBrainz lookups proxied through
   bmux's own server so devtools only ever show a first-party request
+</Update>
+
+<Update label="0.0.1">
+- `bmux convert` turns files, folders or globs into JPEG, PNG, WebP or AVIF, with quality, resizing,
+  and several output formats at once
+- `bmux optimize` runs a whole folder through a web, social or email preset
+- `bmux inspect` reports what a file actually is, read from its contents rather than its name
+- File type is detected from content, so a mislabelled `.jpg` is still handled correctly
+- Originals are never overwritten — colliding names are renamed unless you pass `--collision`
+- Metadata is stripped by default, with photos rotated upright first; `--preserve-metadata` keeps it
+- `--dry-run` shows exactly what would be written, and `--manifest` writes a JSON report for CI
+- A failed file doesn't cancel the rest of the batch, and the command exits non-zero
+- Colour is used for status only, and honours [`NO_COLOR`](https://no-color.org)
 </Update>
