@@ -9,7 +9,7 @@ bmux inspect <file> [--json]
 ```
 
 `inspect` reads a file's **contents** to work out what it is, rather than trusting the extension.
-It writes nothing and changes nothing.
+It writes nothing and changes nothing. Images and audio files (mp3/flac/m4a) are both handled.
 
 ```bash
 bmux inspect photo.jpg
@@ -24,6 +24,23 @@ photo.jpg
   alpha channel: false
   color space: srgb
   EXIF present: false
+```
+
+```bash
+bmux inspect song.mp3
+```
+
+```
+song.mp3
+  size: 4238291 bytes
+  detected type: audio/mpeg
+  audio format: mp3
+  title: Alap
+  artist: Nils Frahm
+  album: Spaces
+  track: 3/11
+  year: 2013
+  cover art: embedded
 ```
 
 ## Arguments
@@ -103,6 +120,28 @@ bmux inspect photo.jpg --json
 
     <ResponseField name="hasExif" type="boolean">
       Whether EXIF is present — not what it contains.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="audio" type="object">
+  Present only if the file could be read as mp3, flac, or m4a.
+
+  <Expandable title="audio">
+    <ResponseField name="format" type="string">
+      `mp3`, `flac`, or `m4a`.
+    </ResponseField>
+
+    <ResponseField name="tags" type="object">
+      `title`, `artist`, `album`, `trackNumber`, `trackTotal`, `year` — each omitted if unset.
+    </ResponseField>
+
+    <ResponseField name="hasCoverArt" type="boolean">
+      Whether the file has embedded cover art.
+    </ResponseField>
+
+    <ResponseField name="coverArtDimensions" type="string">
+      `"widthxheight"`, when the container records it (flac does; id3/mp4 don't).
     </ResponseField>
   </Expandable>
 </ResponseField>

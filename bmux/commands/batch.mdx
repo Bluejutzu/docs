@@ -1,0 +1,70 @@
+---
+title: batch
+description: Apply the same tag fields to every audio file in a directory.
+icon: "layer-group"
+---
+
+```bash
+bmux batch <directory> [options]
+```
+
+`batch` is [`tag`](/bmux/commands/tag) for a whole album folder at once — set the artist, album,
+year, and cover art on every file in one pass. Title and track number are inherently per-file, so
+edit those individually with `tag`.
+
+```bash
+bmux batch "Spaces" --artist "Nils Frahm" --album "Spaces" --year 2013 --cover front.jpg
+```
+
+## Arguments
+
+<ParamField path="directory" type="string" required>
+  Directory of audio files (`.mp3`, `.flac`, `.m4a`/`.m4b`).
+</ParamField>
+
+## Options
+
+<ParamField query="--artist" type="string">Set the artist on every file.</ParamField>
+<ParamField query="--album" type="string">Set the album on every file.</ParamField>
+<ParamField query="--year" type="number">Set the release year on every file.</ParamField>
+
+<ParamField query="--cover" type="string">
+  Embed this cover art on every file, resized to fit 300x300px.
+</ParamField>
+
+<ParamField query="--no-recursive" type="boolean">
+  Only tag files directly inside the directory. By default subdirectories are searched too.
+</ParamField>
+
+<ParamField query="--unique-artist-tag" type="boolean" default="false">
+  Append an invisible per-album suffix to each file's artist tag — see
+  [`tag`](/bmux/commands/tag#the-unique-artist-tag-workaround). Off by default.
+</ParamField>
+
+<ParamField query="--musicbrainz" type="boolean" default="false">
+  Look up title/artist/album/year on [MusicBrainz](https://musicbrainz.org) for whatever's still
+  blank after the flags above, and its cover art via the Cover Art Archive if no cover is set.
+  Fields you passed explicitly, or that the file already had, are never overwritten.
+
+  <Warning>
+    This is the **only** thing in bmux that contacts a third party — everything else runs fully
+    offline. It's off by default, and printing a one-line warning when you turn it on.
+  </Warning>
+</ParamField>
+
+<ParamField query="--dry-run" type="boolean" default="false">
+  Show what would change without writing any files.
+</ParamField>
+
+## A failed file doesn't stop the batch
+
+Like `convert` and `optimize`, one bad file is reported and skipped — the rest of the directory
+still gets tagged, and the command exits non-zero only if something failed:
+
+```
+✔ Spaces/01 - Says.mp3
+✔ Spaces/02 - Says (reprise).mp3
+✘ Spaces/03 - corrupt.mp3: not a valid FLAC file (missing "fLaC" marker)
+
+2 succeeded, 1 failed.
+```

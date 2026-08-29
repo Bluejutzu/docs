@@ -1,0 +1,75 @@
+---
+title: tag
+description: Write specific tag fields on one audio file.
+icon: "tag"
+---
+
+```bash
+bmux tag <file> [options]
+```
+
+`tag` writes ID3v2 (mp3), Vorbis comment (flac), or iTunes-style (m4a) metadata so Spotify's
+**Local Files** feature — and every other player — shows the right title, artist, album, track,
+year, and cover art. Fields you don't pass are left exactly as they were; fields this doesn't
+understand (genre, comments, ...) are always preserved untouched.
+
+```bash
+bmux tag song.mp3 --title "Alap" --artist "Nils Frahm" --album "Spaces" --track 3 --year 2013
+```
+
+## Arguments
+
+<ParamField path="file" type="string" required>
+  The audio file to tag: `.mp3`, `.flac`, or `.m4a`/`.m4b`.
+</ParamField>
+
+## Options
+
+<ParamField query="--title" type="string">Set the title.</ParamField>
+<ParamField query="--artist" type="string">Set the artist.</ParamField>
+<ParamField query="--album" type="string">Set the album.</ParamField>
+<ParamField query="--track" type="number">Set the track number.</ParamField>
+<ParamField query="--track-total" type="number">Set the total track count.</ParamField>
+<ParamField query="--year" type="number">Set the release year.</ParamField>
+
+<ParamField query="--cover" type="string">
+  Embed cover art from an image file. Automatically cropped/resized to fit **300x300px** —
+  Spotify silently fails to show local-file art above that size.
+</ParamField>
+
+<ParamField query="--clear-title" type="boolean" default="false">Remove the title.</ParamField>
+<ParamField query="--clear-artist" type="boolean" default="false">Remove the artist.</ParamField>
+<ParamField query="--clear-album" type="boolean" default="false">Remove the album.</ParamField>
+<ParamField query="--clear-track" type="boolean" default="false">Remove the track number/total.</ParamField>
+<ParamField query="--clear-year" type="boolean" default="false">Remove the year.</ParamField>
+<ParamField query="--clear-cover" type="boolean" default="false">Remove embedded cover art.</ParamField>
+
+<ParamField query="--unique-artist-tag" type="boolean" default="false">
+  Append an invisible zero-width suffix to the artist tag, derived from the album so it's
+  consistent across a re-run. Works around a known Spotify Local Files bug where one album's
+  cover art gets duplicated onto every other album by the same artist. Requires both an artist
+  and an album to be known (from flags or existing tags).
+</ParamField>
+
+<ParamField query="--dry-run" type="boolean" default="false">
+  Print what would change without writing the file.
+</ParamField>
+
+## Removing a field
+
+`--clear-*` flags win over their corresponding value flag if both are somehow implied — pass the
+clear flag on its own:
+
+```bash
+bmux tag song.mp3 --clear-cover
+```
+
+## The unique-artist-tag workaround
+
+```bash
+bmux tag song.mp3 --artist "Boards of Canada" --album "Geogaddi" --unique-artist-tag
+```
+
+The artist tag Spotify displays still reads "Boards of Canada" — the suffix is a handful of
+zero-width space characters, invisible in every UI. [`batch`](/bmux/commands/batch) applies the
+same suffix to every file in a directory at once, which is the more common way to use this.

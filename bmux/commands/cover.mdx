@@ -1,0 +1,41 @@
+---
+title: cover
+description: Extract or replace an audio file's embedded cover art, on its own.
+icon: "image"
+---
+
+```bash
+bmux cover <file> --extract <path>
+bmux cover <file> --replace <path>
+```
+
+A focused version of what `--cover` does on [`tag`](/bmux/commands/tag) and
+[`batch`](/bmux/commands/batch), for when cover art is the only thing you're touching.
+
+## Arguments
+
+<ParamField path="file" type="string" required>
+  The audio file (`.mp3`, `.flac`, or `.m4a`/`.m4b`).
+</ParamField>
+
+## Options
+
+<ParamField query="--extract" type="string">
+  Save the embedded cover art to this path. If the path has no extension, one is added based on
+  the art's actual type (`.jpg` or `.png`).
+</ParamField>
+
+<ParamField query="--replace" type="string">
+  Embed this image as cover art. Resized to fit **300x300px** first — Spotify's Local Files
+  silently fails to show art any larger.
+</ParamField>
+
+Use exactly one of the two per run.
+
+```bash
+bmux cover song.mp3 --extract cover.jpg
+✔ extracted cover art to cover.jpg (300x300)
+
+bmux cover song.mp3 --replace new-cover.png
+✔ embedded 300x300 cover art into song.mp3
+```

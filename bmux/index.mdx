@@ -1,11 +1,13 @@
 ---
 title: bmux CLI
-description: Convert and compress images locally, from the command line.
+description: Convert and compress images, and tag audio for Spotify Local Files, locally from the command line.
 ---
 
-bmux converts and compresses images without uploading them anywhere. The
-[browser app](https://bmux.bluejutzu.dev) does the work in your own tab; the CLI does the same job
-from a script, with no server involved either way.
+bmux converts and compresses images, and tags local audio files for Spotify's Local Files
+feature, without uploading them anywhere. The [browser app](https://bmux.bluejutzu.dev) does the
+work in your own tab; the CLI does the same jobs from a script, with no server involved for
+either — audio tagging's only exception is the optional, opt-in MusicBrainz lookup in
+[`batch`](/bmux/commands/batch).
 
 <Note>
   The CLI uses [sharp](https://sharp.pixelplumbing.com/), so unlike the browser it can write every
@@ -36,7 +38,7 @@ from a script, with no server involved either way.
   </Step>
 </Steps>
 
-## The three commands
+## Images
 
 <CardGroup cols={3}>
   <Card title="convert" icon="right-left" href="/bmux/commands/convert">
@@ -49,6 +51,26 @@ from a script, with no server involved either way.
 
   <Card title="inspect" icon="magnifying-glass" href="/bmux/commands/inspect">
     Report what a file actually is, read from its contents rather than its name.
+  </Card>
+</CardGroup>
+
+## Audio
+
+Tag local mp3/flac/m4a files so Spotify's **Local Files** feature shows their title, artist,
+album, and cover art correctly — the same feature lives in the [browser app](https://bmux.bluejutzu.dev)
+as the **Spotify Tracks** tab.
+
+<CardGroup cols={3}>
+  <Card title="tag" icon="tag" href="/bmux/commands/tag">
+    Write specific fields — title, artist, album, track, year, cover art — on one file.
+  </Card>
+
+  <Card title="batch" icon="layer-group" href="/bmux/commands/batch">
+    Apply the same artist/album/year/cover to every file in a directory at once.
+  </Card>
+
+  <Card title="cover" icon="image" href="/bmux/commands/cover">
+    Extract or replace embedded cover art on its own.
   </Card>
 </CardGroup>
 
