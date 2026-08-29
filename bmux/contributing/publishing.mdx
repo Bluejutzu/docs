@@ -46,6 +46,14 @@ Trusted publishing needs the package to already exist before npm will let you at
 it, so there's a one-time bootstrap: publish the first version by hand, then hand off to OIDC for
 every release after.
 
+<Note>
+  OIDC trusted publishing is an **npm CLI** feature (npm ≥11.5.1) — pnpm's `publish` command has
+  no OIDC support at all as of the 10.x line this repo pins. The workflow's "Publish to npm" step
+  upgrades npm and runs `npm publish` directly from `packages/cli` for this reason, rather than
+  `pnpm --filter @bluejutzu/bmux publish`. It still builds against the `node_modules` layout pnpm
+  installed earlier in the job, so `@bmux/core` resolves the same way either tool runs it.
+</Note>
+
 <Steps>
   <Step title="Publish the first version by hand">
     From a clean checkout, logged in to the `@bluejutzu` account:
